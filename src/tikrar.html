@@ -641,10 +641,10 @@ function widgetDays(){
   const out=[],d=fromKey(TODAY()),st=S.settings,wk=Object.keys(S.wk).length;
   for(let i=0;i<7;i++){const k=dk(d),s=status(k),tp=s.tp,P=s.P;
     const p=tp.pages[0];
-    const page=tp.finished?'All pages memorized':s.rest&&!tp.done?'Rest day':p?('p. '+(tp.lines?lessonLabel({pages:tp.pages,lines:tp.lines}):range(tp.pages))):'—';
-    const sub=p&&!(s.rest&&!tp.done)?surahProgress(p):'Review only';
+    const page=tp.finished?'All memorized':s.rest&&!tp.done?'Rest day':p?'p. '+range(tp.pages):'—';
+    const sub=p&&!(s.rest&&!tp.done)?(tp.lines?(tp.lines[0]===tp.lines[1]?'Line ':'Lines ')+tp.lines[0]+(tp.lines[0]===tp.lines[1]?'':'–'+tp.lines[1])+' · ':'')+surahProgress(p).replace(/^Surah /,''):'Review only';
     const rows=[
-      {tab:'memorize',label:'New page',done:s.newState!=='todo',detail:tp.done?'Done':s.rest?'Rest day':i===0?Math.round(s.newFrac*100)+'%':'To do'},
+      {tab:'memorize',label:'New page',done:s.newState!=='todo',detail:tp.done?'Done':s.rest?'Rest day':i===0?(s.newFrac>=1?'mark done':Math.round(s.newFrac*100)+'%'):'To do'},
       {tab:'memorize',label:'Yesterday',done:s.yDone,detail:!s.yNeed?'—':s.yDone?'Done':s.yCount+'/'+s.yT},
       {tab:'connection',label:'Connection',done:s.cDone===s.cTotal,detail:s.cTotal?s.cDone+'/'+s.cTotal:'—'},
       {tab:'revision',label:'Revision',done:s.rDone,detail:!s.rNeed?'—':s.rDone?'Done':s.rChk+'/'+P.portion.length}];

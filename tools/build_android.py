@@ -114,8 +114,9 @@ w('app/src/main/res/drawable/widget_bg.xml','''<?xml version="1.0" encoding="utf
 </shape>
 ''')
 rows=''.join(f'''
-        <TextView android:id="@+id/w_r{i}" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
-            android:gravity="center_vertical" android:textSize="13sp" android:textColor="#E4ECE7" android:maxLines="1" android:ellipsize="end"
+        <TextView android:id="@+id/w_r{i}" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:paddingTop="5dp" android:paddingBottom="5dp"
+            android:textSize="14sp" android:textColor="#E4ECE7" android:maxLines="1" android:ellipsize="end"
             android:text="○  {lbl}" />''' for i,lbl in enumerate(['New page','Yesterday','Connection','Revision']))
 w('app/src/main/res/layout/widget.xml',f'''<?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -129,15 +130,16 @@ w('app/src/main/res/layout/widget.xml',f'''<?xml version="1.0" encoding="utf-8"?
         android:orientation="vertical" android:gravity="center_vertical">
         <TextView android:id="@+id/w_label" android:layout_width="wrap_content" android:layout_height="wrap_content"
             android:text="TODAY" android:textSize="11sp" android:textStyle="bold" android:letterSpacing="0.1" android:textColor="#D8AF5C" />
-        <TextView android:id="@+id/w_page" android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:text="Tikrar" android:textSize="26sp" android:textStyle="bold" android:textColor="#FFFFFF" android:maxLines="1" android:ellipsize="end" />
+        <TextView android:id="@+id/w_page" android:layout_width="match_parent" android:layout_height="40dp"
+            android:text="Tikrar" android:textStyle="bold" android:textColor="#FFFFFF" android:maxLines="1" android:gravity="center_vertical"
+            android:autoSizeTextType="uniform" android:autoSizeMinTextSize="16sp" android:autoSizeMaxTextSize="30sp" android:autoSizeStepGranularity="1sp" />
         <TextView android:id="@+id/w_sub" android:layout_width="wrap_content" android:layout_height="wrap_content"
             android:text="Open the app to load today" android:textSize="12sp" android:textColor="#93A39A" android:maxLines="2" android:ellipsize="end" />
         <TextView android:id="@+id/w_weak" android:layout_width="wrap_content" android:layout_height="wrap_content"
             android:text="" android:textSize="11sp" android:textColor="#D8AF5C" android:visibility="gone" android:layout_marginTop="4dp" />
     </LinearLayout>
     <LinearLayout android:id="@+id/w_rows" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"
-        android:orientation="vertical" android:layout_marginStart="10dp">{rows}
+        android:orientation="vertical" android:gravity="center_vertical" android:layout_marginStart="10dp">{rows}
     </LinearLayout>
 </LinearLayout>
 ''')
