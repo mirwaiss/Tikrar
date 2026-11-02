@@ -107,6 +107,7 @@ function plan(t=TODAY()){
 function getCount(x,id){if(x.n&&x.n[id]!=null)return x.n[id];
   if(id==='listen')return x.listen||0;if(id==='rec')return x.rec||0;if(id==='reps')return x.reps||0;if(id==='tafsir')return x.tafsir?1:0;if(id==='memo')return x.memo?1:0;return x.c&&x.c[id]?1:0}
 function setCount(x,id,v){if(!x.n)x.n={};x.n[id]=Math.max(0,v)}
+function lastRevPart(P,t){const ex=S.revExtra[t]||[];const pp=ex.length?ex[ex.length-1]:S.revLog[t];return pp?P.partOf(pp):null}
 function stepState(p,st){const x=S.pp[pkey(p)]||{};const tp=workTarget();
   const list=st.steps.filter(z=>z.on);
   return list.map(z=>{const c=Math.max(1,z.count|0),v=Math.min(getCount(x,z.id),c);return{...z,count:c,val:v,frac:v/c,done:v>=c}})}
@@ -215,7 +216,7 @@ function vToday(){
    ${taskRow('memorize','New page',s.rest&&!s.tp.done?'Rest day — no new page':(s.tp.done?'Done · page '+lessonLabel(s.tp.lesson):stepSummary()),s.newState,s.newFrac,s.newState==='done'?chipFor('done','Done'):s.newState==='rest'?chipFor('rest','Rest'):chipFor(s.newFrac>0?'prog':'',Math.round(s.newFrac*100)+'%'))}
    ${taskRow('memorize','Yesterday’s repetition',s.yNeed?(isJoinLesson(P.yl)?'Whole page '+P.yl.pages[0]+' joined':'Page '+yPages)+' · '+s.yT+'× from memory':'Nothing from yesterday',s.yDone?'done':'todo',s.yCount/s.yT,s.yDone?chipFor('done',s.yNeed?'Done':'—'):chipFor(s.yCount?'prog':'',s.yCount+'/'+s.yT))}
    ${taskRow('connection','Connection',s.cTotal?(n=>n+' page'+(n>1?'s':'')+' · once each, '+P.tgt+' times in all')([...new Set([].concat(...P.conn.map(l=>l.pages)))].length):'Builds up as you memorize',s.cDone===s.cTotal?'done':'todo',s.cTotal?s.cDone/s.cTotal:1,s.cDone===s.cTotal?chipFor('done',s.cTotal?'Done':'—'):chipFor(s.cDone?'prog':'',s.cDone+'/'+s.cTotal))}
-   ${taskRow('revision','Revision',s.rNeed?'Part '+P.partOf(P.portion)+' of '+P.nParts+' · pages '+range(P.portion):'Pages arrive after '+P.tgt+' connection recitations',s.rDone?'done':'todo',s.rNeed?s.rChk/P.portion.length:1,s.rDone?chipFor('done',s.rNeed?'Done':'—'):chipFor(s.rChk?'prog':'',s.rChk+'/'+P.portion.length))}
+   ${taskRow('revision','Revision',s.rNeed?(s.rDone&&lastRevPart(P,s.t)?'Completed part '+lastRevPart(P,s.t)+' of '+P.nParts+((S.revExtra[s.t]||[]).length?' · '+(1+(S.revExtra[s.t]||[]).length)+' parts today':''):'Part '+P.partOf(P.portion)+' of '+P.nParts+' · pages '+range(P.portion)):'Pages arrive after '+P.tgt+' connection recitations',s.rDone?'done':'todo',s.rNeed?s.rChk/P.portion.length:1,s.rDone?chipFor('done',s.rNeed?'Done':'—'):chipFor(s.rChk?'prog':'',s.rChk+'/'+P.portion.length))}
   </div>`;
   const wn=Object.keys(S.wk).length;if(wn)h+=`<button class="task" data-act="goWeak" style="border:1px solid var(--line);border-radius:var(--r);background:var(--surface)"><span class="tick part">!</span><span><span class="t">Weak pages</span><span class="s" style="display:block">${wn} page${wn>1?'s':''} · review whenever you have time</span></span>${chipFor('',wn)}</button>`;
   if(s.allDone)h+=`<div class="card" style="text-align:center"><h2>Everything for today is done</h2><p class="muted small" style="margin:6px 0 0">Recite at a steady, audible pace (hadr). See you tomorrow, in sha Allah.</p></div>`;
@@ -422,7 +423,7 @@ function widgetDays(){
       {tab:'memorize',label:'New page',done:s.newState!=='todo',detail:tp.done?'Done':s.rest?'Rest day':i===0?(s.newFrac>=1?'mark done':Math.round(s.newFrac*100)+'%'):'To do'},
       {tab:'memorize',label:'Yesterday',done:s.yDone,detail:!s.yNeed?'—':s.yDone?'Done':s.yCount+'/'+s.yT},
       {tab:'connection',label:'Connection',done:s.cDone===s.cTotal,detail:s.cTotal?s.cDone+'/'+s.cTotal:'—'},
-      {tab:'revision',label:'Revision',done:s.rDone,detail:!s.rNeed?'—':s.rDone?'Done':s.rChk+'/'+P.portion.length}];
+      {tab:'revision',label:'Revision',done:s.rDone,detail:!s.rNeed?'—':s.rDone?(lastRevPart(P,k)?'part '+lastRevPart(P,k)+'/'+P.nParts:'Done'):s.rChk+'/'+P.portion.length}];
     out.push({date:k,page,sub,rows,allDone:s.allDone,weak:wk});d.setDate(d.getDate()+1)}
   return out;
 }
