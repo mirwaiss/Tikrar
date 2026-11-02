@@ -1,0 +1,3 @@
+*.keystore
+local.properties
+build/
