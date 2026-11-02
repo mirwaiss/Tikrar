@@ -216,7 +216,7 @@ function vToday(){
    ${taskRow('memorize','New page',s.rest&&!s.tp.done?'Rest day — no new page':(s.tp.done?'Done · page '+lessonLabel(s.tp.lesson):stepSummary()),s.newState,s.newFrac,s.newState==='done'?chipFor('done','Done'):s.newState==='rest'?chipFor('rest','Rest'):chipFor(s.newFrac>0?'prog':'',Math.round(s.newFrac*100)+'%'))}
    ${taskRow('memorize','Yesterday’s repetition',s.yNeed?(isJoinLesson(P.yl)?'Whole page '+P.yl.pages[0]+' joined':'Page '+yPages)+' · '+s.yT+'× from memory':'Nothing from yesterday',s.yDone?'done':'todo',s.yCount/s.yT,s.yDone?chipFor('done',s.yNeed?'Done':'—'):chipFor(s.yCount?'prog':'',s.yCount+'/'+s.yT))}
    ${taskRow('connection','Connection',s.cTotal?(n=>n+' page'+(n>1?'s':'')+' · once each, '+P.tgt+' times in all')([...new Set([].concat(...P.conn.map(l=>l.pages)))].length):'Builds up as you memorize',s.cDone===s.cTotal?'done':'todo',s.cTotal?s.cDone/s.cTotal:1,s.cDone===s.cTotal?chipFor('done',s.cTotal?'Done':'—'):chipFor(s.cDone?'prog':'',s.cDone+'/'+s.cTotal))}
-   ${taskRow('revision','Revision',s.rNeed?(s.rDone&&lastRevPart(P,s.t)?'Completed part '+lastRevPart(P,s.t)+' of '+P.nParts+((S.revExtra[s.t]||[]).length?' · '+(1+(S.revExtra[s.t]||[]).length)+' parts today':''):'Part '+P.partOf(P.portion)+' of '+P.nParts+' · pages '+range(P.portion)):'Pages arrive after '+P.tgt+' connection recitations',s.rDone?'done':'todo',s.rNeed?s.rChk/P.portion.length:1,s.rDone?chipFor('done',s.rNeed?'Done':'—'):chipFor(s.rChk?'prog':'',s.rChk+'/'+P.portion.length))}
+   ${taskRow('revision','Revision',s.rNeed?(s.rDone&&lastRevPart(P,s.t)?'Completed part '+lastRevPart(P,s.t)+' of '+P.nParts:'Part '+P.partOf(P.portion)+' of '+P.nParts+' · pages '+range(P.portion)):'Pages arrive after '+P.tgt+' connection recitations',s.rDone?'done':'todo',s.rNeed?s.rChk/P.portion.length:1,s.rDone?chipFor('done',s.rNeed?'Done':'—'):chipFor(s.rChk?'prog':'',s.rChk+'/'+P.portion.length))}
   </div>`;
   const wn=Object.keys(S.wk).length;if(wn)h+=`<button class="task" data-act="goWeak" style="border:1px solid var(--line);border-radius:var(--r);background:var(--surface)"><span class="tick part">!</span><span><span class="t">Weak pages</span><span class="s" style="display:block">${wn} page${wn>1?'s':''} · review whenever you have time</span></span>${chipFor('',wn)}</button>`;
   if(s.allDone)h+=`<div class="card" style="text-align:center"><h2>Everything for today is done</h2><p class="muted small" style="margin:6px 0 0">Recite at a steady, audible pace (hadr). See you tomorrow, in sha Allah.</p></div>`;
@@ -339,15 +339,18 @@ function vRevision(){
   if(!P.old.length){h+=`<div class="empty">No old memorization yet. Pages move here after ${P.tgt} days of connection. If you memorized pages before starting, add them in Settings.</div>`;return h+vWeak()}
   const top=S.revStack[S.revStack.length-1];const canUndo=top&&top.date>=t;
   const row=(p,on,act,dis)=>`<div class="li"><button class="cb ${on?'on':''}" data-act="${act}" data-p="${p}" ${dis?'disabled':''} aria-label="Mark page ${p} recited">✓</button><div class="m"><b>Page ${p}</b><div>${esc(pageMeta(p))}${S.miss[p]?` · ${S.miss[p]} past mistake${S.miss[p]>1?'s':''}`:''}</div></div><button class="flag ${S.weak[p]?'on':''}" data-act="weak" data-p="${p}">${S.weak[p]?'Weak':'Flag'}</button></div>`;
-  h+=`<section class="card"><div class="card-h"><div><div class="label">Today · ${P.portion.length} page${P.portion.length>1?'s':''}</div><h2>Part ${P.partOf(P.portion)} of ${P.nParts}</h2><div class="small muted">Pages ${range(P.portion)}</div></div>${s.rDone?chipFor('done','Done'):chipFor(s.rChk?'prog':'',s.rChk+'/'+P.portion.length)}</div>`;
-  h+=`<div class="list">${P.portion.map(p=>row(p,s.rDone||!!lg.revChk[p],'revChk',s.rDone)).join('')}</div>`;
-  h+=`<div class="row">${s.rDone?(canUndo?`<button class="btn" data-act="revUndo">${top.extra?'Undo extra part '+P.partOf((S.revExtra[t]||[]).slice(-1)[0])+' of '+P.nParts:'Undo, reopen today’s pages'}</button>`:''):`<button class="btn pri" data-act="revFinish">Finish today’s revision</button>`}</div></section>`;
+  if(s.rDone){const ex=S.revExtra[t]||[];const lp=ex.length?ex[ex.length-1]:(S.revLog[t]||P.portion);
+    h+=`<section class="card"><div class="card-h"><div><div class="label">Revision</div><h2>Completed part ${P.partOf(lp)} of ${P.nParts}</h2><div class="small muted">Pages ${range(lp)}</div></div>${chipFor('done','Done')}</div>`;
+  }else{
+    h+=`<section class="card"><div class="card-h"><div><div class="label">Today · ${P.portion.length} page${P.portion.length>1?'s':''}</div><h2>Part ${P.partOf(P.portion)} of ${P.nParts}</h2><div class="small muted">Pages ${range(P.portion)}</div></div>${chipFor(s.rChk?'prog':'',s.rChk+'/'+P.portion.length)}</div>`;
+    h+=`<div class="list">${P.portion.map(p=>row(p,!!lg.revChk[p],'revChk',false)).join('')}</div>`;
+  }
+  h+=`<div class="row">${s.rDone?(canUndo?`<button class="btn" data-act="revUndo">${top.extra?'Undo part '+P.partOf((S.revExtra[t]||[]).slice(-1)[0])+' of '+P.nParts:'Undo, reopen today’s pages'}</button>`:''):`<button class="btn pri" data-act="revFinish">Finish today’s revision</button>`}</div></section>`;
   if(s.rDone&&P.ahead.length){
     const ac=lg.aheadChk||{};const nm='part '+P.partOf(P.ahead)+' of '+P.nParts;
-    h+=`<section class="card"><div class="card-h"><div><div class="label">Extra</div><h2>Next: ${cap(nm)}</h2></div>${P.aheadDone.length?chipFor('done','+'+P.aheadDone.length+' extra today'):''}</div>`;
-    if(P.aheadDone.length)h+=`<p class="small muted" style="margin:-4px 0 8px">Extra parts done today: ${P.aheadDone.map(pp=>'part '+P.partOf(pp)+' (pp. '+range(pp)+')').join(', ')}.</p>`;
-    h+=ui.ahead?`<p class="small muted" style="margin:0 0 4px">Pages ${range(P.ahead)}. This moves you further through the cycle. Tomorrow you still do a part as usual.</p><div class="list">${P.ahead.map(p=>row(p,!!ac[p],'aheadChk',false)).join('')}</div><div class="row"><button class="btn pri" data-act="revAheadFinish">Finish ${esc(nm)}</button><button class="btn" data-act="revAheadClose">Cancel</button></div>`
-      :`<div class="row" style="margin-top:0"><button class="btn" data-act="revAheadOpen">Do ${esc(nm)} as an extra · ${P.ahead.length} pages</button></div>`;
+    h+=`<section class="card"><div class="card-h"><div><div class="label">Up next</div><h2>${cap(nm)}</h2></div></div>`;
+    h+=ui.ahead?`<p class="small muted" style="margin:0 0 4px">Pages ${range(P.ahead)}. Tomorrow you still do a part as usual.</p><div class="list">${P.ahead.map(p=>row(p,!!ac[p],'aheadChk',false)).join('')}</div><div class="row"><button class="btn pri" data-act="revAheadFinish">Finish ${esc(nm)}</button><button class="btn" data-act="revAheadClose">Cancel</button></div>`
+      :`<div class="row" style="margin-top:0"><button class="btn" data-act="revAheadOpen">Do ${esc(nm)} now · ${P.ahead.length} pages</button></div>`;
     h+='</section>';
   }
   const left=P.old.length-P.roundDone;
