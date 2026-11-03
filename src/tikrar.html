@@ -227,10 +227,25 @@ nav button .pip.todo{background:var(--gold)}
 const SURAHS=[["Al-Fatihah",1],["Al-Baqarah",2],["Al Imran",50],["An-Nisa",77],["Al-Ma'idah",106],["Al-An'am",128],["Al-A'raf",151],["Al-Anfal",177],["At-Tawbah",187],["Yunus",208],["Hud",221],["Yusuf",235],["Ar-Ra'd",249],["Ibrahim",255],["Al-Hijr",262],["An-Nahl",267],["Al-Isra",282],["Al-Kahf",293],["Maryam",305],["Taha",312],["Al-Anbiya",322],["Al-Hajj",332],["Al-Mu'minun",342],["An-Nur",350],["Al-Furqan",359],["Ash-Shu'ara",367],["An-Naml",377],["Al-Qasas",385],["Al-Ankabut",396],["Ar-Rum",404],["Luqman",411],["As-Sajdah",415],["Al-Ahzab",418],["Saba",428],["Fatir",434],["Ya-Sin",440],["As-Saffat",446],["Sad",453],["Az-Zumar",458],["Ghafir",467],["Fussilat",477],["Ash-Shura",483],["Az-Zukhruf",489],["Ad-Dukhan",496],["Al-Jathiyah",499],["Al-Ahqaf",502],["Muhammad",507],["Al-Fath",511],["Al-Hujurat",515],["Qaf",518],["Adh-Dhariyat",520],["At-Tur",523],["An-Najm",526],["Al-Qamar",528],["Ar-Rahman",531],["Al-Waqi'ah",534],["Al-Hadid",537],["Al-Mujadila",542],["Al-Hashr",545],["Al-Mumtahanah",549],["As-Saff",551],["Al-Jumu'ah",553],["Al-Munafiqun",554],["At-Taghabun",556],["At-Talaq",558],["At-Tahrim",560],["Al-Mulk",562],["Al-Qalam",564],["Al-Haqqah",566],["Al-Ma'arij",568],["Nuh",570],["Al-Jinn",572],["Al-Muzzammil",574],["Al-Muddaththir",575],["Al-Qiyamah",577],["Al-Insan",578],["Al-Mursalat",580],["An-Naba",582],["An-Nazi'at",583],["Abasa",585],["At-Takwir",586],["Al-Infitar",587],["Al-Mutaffifin",587],["Al-Inshiqaq",589],["Al-Buruj",590],["At-Tariq",591],["Al-A'la",591],["Al-Ghashiyah",592],["Al-Fajr",593],["Al-Balad",594],["Ash-Shams",595],["Al-Layl",595],["Ad-Duha",596],["Ash-Sharh",596],["At-Tin",597],["Al-Alaq",597],["Al-Qadr",598],["Al-Bayyinah",598],["Az-Zalzalah",599],["Al-Adiyat",599],["Al-Qari'ah",600],["At-Takathur",600],["Al-Asr",601],["Al-Humazah",601],["Al-Fil",601],["Quraysh",602],["Al-Ma'un",602],["Al-Kawthar",602],["Al-Kafirun",603],["An-Nasr",603],["Al-Masad",603],["Al-Ikhlas",604],["Al-Falaq",604],["An-Nas",604]];
 const JUZ=[1,22,42,62,82,102,121,142,162,182,201,222,242,262,282,302,322,342,362,382,402,422,442,462,482,502,522,542,562,582];
 const TOTAL=604;
+const SURAH_END=[1, 49, 76, 106, 127, 150, 176, 186, 207, 221, 235, 248, 255, 261, 267, 281, 293, 304, 312, 321, 331, 341, 349, 359, 366, 376, 385, 396, 404, 410, 414, 417, 427, 434, 440, 445, 452, 458, 467, 476, 482, 489, 495, 498, 502, 506, 510, 515, 517, 520, 523, 525, 528, 531, 534, 537, 541, 545, 548, 551, 552, 554, 555, 557, 559, 561, 564, 566, 568, 570, 571, 573, 575, 577, 578, 580, 581, 583, 584, 585, 586, 587, 589, 589, 590, 591, 592, 592, 594, 594, 595, 596, 596, 596, 597, 597, 598, 599, 599, 600, 600, 600, 601, 601, 601, 602, 602, 602, 603, 603, 603, 604, 604, 604];
+function onPage(p){const out=[];SURAHS.forEach(([n,st],i)=>{if(st<=p&&SURAH_END[i]>=p)out.push(i+1)});return out}
+function surahName(n){return SURAHS[n-1][0]}
+let ITEMS=null,ITEM_BY_KEY=null,ITEMS_BY_PAGE=null;
+function seqItems(){if(ITEMS)return ITEMS;const out=[];
+  for(let i=SURAHS.length-1;i>=0;i--){const n=i+1,st=SURAHS[i][1],en=SURAH_END[i];
+    for(let p=st;p<=en;p++){const prev=out[out.length-1];const local=st===en;
+      if(local&&prev&&prev.p===p&&prev.local){prev.ss.push(n);continue}
+      out.push({p,ss:[n],local})}}
+  out.forEach(it=>{it.k=it.p+'|'+it.ss.join(',')});
+  ITEMS=out;ITEM_BY_KEY={};ITEMS_BY_PAGE={};out.forEach((it,i)=>{it.i=i;ITEM_BY_KEY[it.k]=it;(ITEMS_BY_PAGE[it.p]=ITEMS_BY_PAGE[it.p]||[]).push(it)});return out}
+function itemOf(p,k){seqItems();return (k&&ITEM_BY_KEY[k])||(ITEMS_BY_PAGE[p]||[])[0]||null}
+function itemShared(it){seqItems();return !!it&&(ITEMS_BY_PAGE[it.p]||[]).length>1}
+function itemName(it){return it.ss.length>2?surahName(it.ss[0])+' – '+surahName(it.ss[it.ss.length-1]):it.ss.map(surahName).join(', ')}
+function lessonItem(l){return itemOf(l.pages[0],l.keys&&l.keys[0])}
 function surahOf(p){let s=SURAHS[0][0];for(const [n,st] of SURAHS){if(st<=p)s=n;else break}return s}
 function surahsOn(p){const on=SURAHS.filter(([,st])=>st===p).map(([n])=>n);return on.length?on:[surahOf(p)]}
 function juzOf(p){let j=1;JUZ.forEach((st,i)=>{if(st<=p)j=i+1});return j}
-function pageMeta(p){const s=surahsOn(p);return (s.length>2?s[0]+' – '+s[s.length-1]:s.join(', '))+' · Juz '+juzOf(p)}
+function pageMeta(p){const s=onPage(p).map(surahName);return (s.length>2?s[0]+' – '+s[s.length-1]:s.join(', '))+' · Juz '+juzOf(p)}
 /* Page order. 'surah': An-Nas back to Al-Fatihah, each surah from its first page forward. */
 let SEQ_CACHE={};
 function orderSeq(order){
@@ -241,8 +256,8 @@ function orderSeq(order){
   else{for(let i=SURAHS.length-1;i>=0;i--){const [name,st]=SURAHS[i];const nx=i+1<SURAHS.length?SURAHS[i+1][1]:TOTAL+1;const end=Math.max(st,nx-1);for(let p=st;p<=end;p++){if(!seen.has(p)){seen.add(p);seq.push({p,s:name,n:i+1})}}}}
   return SEQ_CACHE[order]=seq;
 }
-function ownerSurah(p){const it=orderSeq(S.settings.order).find(x=>x.p===p);return it?it.s:surahOf(p)}
-function surahProgress(p){const seq=orderSeq(S.settings.order);const it=seq.find(x=>x.p===p);if(!it)return'';const blk=seq.filter(x=>x.s===it.s);return 'Surah '+it.s+' · page '+(blk.findIndex(x=>x.p===p)+1)+' of '+blk.length}
+function ownerSurah(p,k){const it=itemOf(p,k);return it?surahName(it.ss[0]):surahOf(p)}
+function surahProgress(p,k){const it=itemOf(p,k);if(!it)return'';if(it.ss.length>1)return 'Surahs '+itemName(it)+' · whole surahs';const n=it.ss[0];const blk=seqItems().filter(x=>x.ss.includes(n));return 'Surah '+surahName(n)+' · page '+(blk.indexOf(it)+1)+' of '+blk.length+(itemShared(it)?' · '+surahName(n)+' part only':'')}
 function range(pages){if(!pages.length)return'';const a=[...pages].sort((x,y)=>x-y);const out=[];let s=a[0],e=a[0];for(let i=1;i<=a.length;i++){if(a[i]===e+1){e=a[i]}else{out.push(s===e?''+s:s+'–'+e);s=e=a[i]}}return out.join(', ')}
 
 /* ---------- State ---------- */
@@ -270,40 +285,43 @@ function dayPpd(t=TODAY()){const lg=S.logs[t];return normAmt((lg&&lg.ppd)||S.set
 function log(day=TODAY()){return S.logs[day]||(S.logs[day]={pages:{},conn:{},revChk:{},y:0})}
 function aheadMemDate(){let m=TODAY();S.lessons.forEach(l=>{if(l.date>m)m=l.date});const d=fromKey(m);for(let i=0;i<30;i++){d.setDate(d.getDate()+1);const k=dk(d);if(!isRest(k))return k}return dk(d)}
 function workTarget(){const tp=todaysPages();if(tp.done&&ui.aheadMem){const d=aheadMemDate();return{...lessonFor(d),date:d,ahead:true}}return{...tp,date:TODAY()}}
-function pkey(p){const tp=workTarget();return tp.lines&&tp.pages[0]===p?p+'L'+tp.lines[0]:''+p}
+function pkey(p){const tp=workTarget();const i=tp.pages.indexOf(p);const it=i>=0&&tp.keys?itemOf(p,tp.keys[i]):null;const sfx=it&&it!==itemOf(p)?'S'+it.ss[0]:'';return (tp.lines&&tp.pages[0]===p?p+'L'+tp.lines[0]:''+p)+sfx}
 function pst(p){const k=pkey(p);return S.pp[k]||(S.pp[k]={n:{},recReset:0,miss:0})}
 const fmt=(d,o)=>d.toLocaleDateString(undefined,o);
 function hijri(){try{return new Intl.DateTimeFormat('en-u-ca-islamic-umalqura',{day:'numeric',month:'long',year:'numeric'}).format(new Date())}catch(e){return''}}
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 /* ---------- Schedule logic ---------- */
-function surahBlock(n){return orderSeq('surah').filter(x=>x.n===n).map(x=>x.p)}
-function priorSet(){const s=new Set();const st=S.settings;
-  if(st.priorTo>=1){orderSeq('surah').forEach(x=>{if(x.n>=st.priorTo)s.add(x.p)});let n=st.priorTo-1;while(n>=1&&!surahBlock(n).length)n--;surahBlock(n).slice(0,st.priorPart||0).forEach(p=>s.add(p))}
-(S.settings.prior||'').split(/[,\s]+/).forEach(t=>{const m=t.match(/^(\d+)(?:[-–](\d+))?$/);if(!m)return;let a=+m[1],b=m[2]?+m[2]:a;if(a>b)[a,b]=[b,a];for(let p=Math.max(1,a);p<=Math.min(TOTAL,b);p++)s.add(p)});return s}
-function memorizedSet(){const s=priorSet();S.lessons.forEach(l=>{if(!l.lines||l.lines[1]>=15)l.pages.forEach(p=>s.add(p))});return s}
+function surahBlock(n){return seqItems().filter(x=>x.ss.includes(n)).map(x=>x.p)}
+function surahItems(n){return seqItems().filter(x=>x.ss.includes(n))}
+function priorItems(){const out=new Set();const st=S.settings;
+  if(st.priorTo>=1){seqItems().forEach(x=>{if(Math.min(...x.ss)>=st.priorTo)out.add(x.k)});let n=st.priorTo-1;while(n>=1&&!surahItems(n).length)n--;if(n>=1)surahItems(n).slice(0,st.priorPart||0).forEach(x=>out.add(x.k))}
+  (S.settings.prior||'').split(/[,\s]+/).forEach(t=>{const m=t.match(/^(\d+)(?:[-–](\d+))?$/);if(!m)return;let a=+m[1],b=m[2]?+m[2]:a;if(a>b)[a,b]=[b,a];for(let p=Math.max(1,a);p<=Math.min(TOTAL,b);p++)(ITEMS_BY_PAGE[p]||[]).forEach(x=>out.add(x.k))});
+  return out}
+function priorSet(){seqItems();const s=new Set();priorItems().forEach(k=>s.add(ITEM_BY_KEY[k].p));return s}
+function memItems(){const out=priorItems();S.lessons.forEach(l=>{if(l.lines&&l.lines[1]<15)return;if(l.keys)l.keys.forEach(k=>out.add(k));else l.pages.forEach(p=>(ITEMS_BY_PAGE[p]||[]).forEach(x=>out.add(x.k)))});return out}
+function memorizedSet(){const mi=memItems(),s=new Set();Object.keys(ITEMS_BY_PAGE).forEach(p=>{if(ITEMS_BY_PAGE[p].every(x=>mi.has(x.k)))s.add(+p)});return s}
 function isJoinLesson(l){return !!(l&&l.lines&&l.lines[0]>1&&l.lines[1]>=15&&S.settings.joinReps>0)}
 function yTarget(l){return isJoinLesson(l)?S.settings.joinReps:S.settings.yreps}
-function joinSplit(l){const p=l.pages[0];return l.split!=null?l.split:surahsOn(p).length>1}
-function yDesc(l){if(!isJoinLesson(l))return 'Page '+lessonLabel(l);const p=l.pages[0];return joinSplit(l)?`The ${ownerSurah(p)} part of p. ${p}, both parts joined`:`Whole page ${p}, both parts joined`}
-function lessonLabel(l){return range(l.pages)+(l.lines?` (${linesTxt(l.lines)})`:'')}
+function joinSplit(l){return l.split!=null?l.split:itemShared(lessonItem(l))}
+function yDesc(l){if(!isJoinLesson(l))return 'Page '+lessonLabel(l);const p=l.pages[0];return joinSplit(l)?`The ${surahName(lessonItem(l).ss[0])} part of p. ${p}, both parts joined`:`Whole page ${p}, both parts joined`}
+function lessonLabel(l){const it=l.pages.length===1?lessonItem(l):null;const part=it&&itemShared(it)?surahName(it.ss[0])+' part':'';const bits=[part,l.lines?linesTxt(l.lines):''].filter(Boolean);return range(l.pages)+(bits.length?` (${bits.join(', ')})`:'')}
 function todaysPages(){return lessonFor(TODAY())}
 function lessonFor(t){
   const done=S.lessons.find(l=>l.date===t);
-  if(done)return{pages:done.pages,lines:done.lines||null,done:true,lesson:done};
-  const st=S.settings,mem=memorizedSet(),amt=dayPpd(t),part=amt==='half'||/L$/.test(amt);
+  if(done)return{pages:done.pages,keys:done.keys||null,lines:done.lines||null,done:true,lesson:done};
+  const st=S.settings,mi=memItems(),amt=dayPpd(t),part=amt==='half'||/L$/.test(amt);
   const span=a=>amt==='half'?[a,Math.min(15,a+7)]:/L$/.test(amt)?[a,Math.min(15,a+parseInt(amt)-1)]:[a,15];
   const before=S.lessons.filter(l=>l.date<t),last=before[before.length-1];
-  if(last&&last.lines&&last.lines[1]<15&&!mem.has(last.pages[0]))return{pages:[last.pages[0]],lines:span(last.lines[1]+1),done:false,cont:true};
-  const seq=orderSeq(st.order).map(x=>x.p);
-  if(seq.every(p=>mem.has(p)))return{pages:[],lines:null,done:false,finished:true};
-  let i=last?seq.indexOf(last.pages[last.pages.length-1])+1:0;if(i<0)i=0;
+  if(last&&last.lines&&last.lines[1]<15){const it=lessonItem(last);if(it&&!mi.has(it.k))return{pages:[it.p],keys:[it.k],lines:span(last.lines[1]+1),done:false,cont:true}}
+  const seq=seqItems();
+  if(seq.every(x=>mi.has(x.k)))return{pages:[],keys:[],lines:null,done:false,finished:true};
   const want=part?1:parseInt(amt),out=[];
-  for(let g=0;g<seq.length&&out.length<want;g++){const q=seq[(i+g)%seq.length];if(!mem.has(q)&&!out.includes(q))out.push(q)}
-  return{pages:out,lines:part&&out.length?span(1):null,done:false};
+  for(const x of seq){if(out.length>=want)break;if(!mi.has(x.k))out.push(x)}
+  return{pages:out.map(x=>x.p),keys:out.map(x=>x.k),lines:part&&out.length?span(1):null,done:false};
 }
 function recentPrior(){const st=S.settings,N=Math.max(0,st.priorConn|0);if(!N)return[];
-  const pr=priorSet();return orderSeq('surah').map(x=>x.p).filter(p=>pr.has(p)).slice(-N)}
+  const pr=priorItems();const ps=[];seqItems().forEach(x=>{if(pr.has(x.k)&&!ps.includes(x.p))ps.push(x.p)});return ps.slice(-N)}
 function ccBefore(key,lg){return (S.cc[key]||0)-(lg&&lg.conn&&lg.conn[key]?1:0)}
 function plan(t=TODAY()){
   const st=S.settings,lg=S.logs[t]||{};
@@ -434,7 +452,7 @@ function vToday(){
   const s=status(),st=s.st,P=s.P;
   let h='';
   const pg=s.tp.pages;
-  h+=`<section class="hero"><div><div class="label">${s.tp.done?'Memorized today':s.rest?'Rest day':'Today’s page'}${s.tp.lines?' · '+linesTxt(s.tp.lines):''}</div><div class="pg num">${pg.length?(pg.length>1?range(pg):'p. '+pg[0]):'—'}</div><div class="sub">${pg.length?esc(S.settings.order==='surah'?surahProgress(pg[0])+' · Juz '+juzOf(pg[0]):pageMeta(pg[0])):s.tp.finished?'All 604 pages memorized':''}</div></div><div class="day">Lesson ${s.tp.done?s.tp.lesson.n:P.D+1}<br><span class="small">${memorizedSet().size} / ${TOTAL}</span></div></section>`;
+  h+=`<section class="hero"><div><div class="label">${s.tp.done?'Memorized today':s.rest?'Rest day':'Today’s page'}${s.tp.lines?' · '+linesTxt(s.tp.lines):''}</div><div class="pg num">${pg.length?(pg.length>1?range(pg):'p. '+pg[0]):'—'}</div><div class="sub">${pg.length?esc(S.settings.order==='surah'?surahProgress(pg[0],s.tp.keys&&s.tp.keys[0])+' · Juz '+juzOf(pg[0]):pageMeta(pg[0])):s.tp.finished?'All 604 pages memorized':''}</div></div><div class="day">Lesson ${s.tp.done?s.tp.lesson.n:P.D+1}<br><span class="small">${memorizedSet().size} / ${TOTAL}</span></div></section>`;
   const yPages=P.yl?lessonLabel(P.yl):'';
   h+=`<div class="tasks">
    ${taskRow('memorize','New page',s.rest&&!s.tp.done?'Rest day — no new page':(s.tp.done?'Done · page '+lessonLabel(s.tp.lesson):stepSummary()),s.newState,s.newFrac,s.newState==='done'?chipFor('done','Done'):s.newState==='rest'?chipFor('rest','Rest'):chipFor(s.newFrac>0?'prog':'',Math.round(s.newFrac*100)+'%'))}
@@ -485,8 +503,8 @@ function workBlock(w,st){
 function weakBtn(p){return `<button class="flag ${S.weak[p]?'on':''}" data-act="weak" data-p="${p}">${S.weak[p]?'Weak page ✓':'Flag p. '+p+' as weak'}</button>`}
 function pageCard(p,st,ln){
   const x=pst(p);const next=p<TOTAL?p+1:null;
-  const seqI=orderSeq(st.order);const it=seqI.find(q=>q.p===p);const blk=it?seqI.filter(q=>q.s===it.s):[];
-  const endOfSurah=blk.length>0&&blk[blk.length-1].p===p;
+  const wt=workTarget();const wi=wt.pages.indexOf(p);const it=itemOf(p,wt.keys&&wi>=0?wt.keys[wi]:null);const blk=it?surahItems(it.ss[0]):[];
+  const endOfSurah=blk.length>0&&blk[blk.length-1]===it;it.s=it?surahName(it.ss[0]):'';
   const nextDone=!!next&&memorizedSet().has(next);
   const ss=stepState(p,st);
   const cur=ss.findIndex(z=>!z.done)+1;const open=ui.openStep[p]!=null?ui.openStep[p]:cur;
@@ -503,7 +521,7 @@ function pageCard(p,st,ln){
       if(ln&&ln[1]<15){title=`Memorize ${linesTxt(ln)} of p. ${p}`;note=`Watch where each verse stops and starts. Carry on a little into line ${ln[1]+1} so the parts join.`}
       else{const pre=ln&&ln[0]>1?`Memorize ${linesTxt(ln)} of p. ${p}`:'Memorize the page';
         title=endOfSurah?`${pre} · end of Surah ${esc(it.s)}`:`${pre}${next?' + first line of p. '+next:''}`;
-        note=(ln&&ln[0]>1?'Recite it joined to the lines before. ':'')+(endOfSurah?`Watch where each verse stops and starts. This completes the surah${nextDone?`. Page ${next} starts ${esc(surahsOn(next)[0])}, which you’ve already memorized, so joining its first line is optional`:''}.`:'Watch where each verse stops and starts. Don’t stop at the last verse; join it to the next page.')}}
+        note=(ln&&ln[0]>1?'Recite it joined to the lines before. ':'')+(endOfSurah?`Watch where each verse stops and starts. This completes the surah${(()=>{const later=it&&(ITEMS_BY_PAGE[p]||[]).find(x=>x.i<it.i);if(later)return `. ${esc(surahName(later.ss[later.ss.length-1]))} begins right after on this page${memItems().has(later.k)?', and you’ve already memorized it, so joining into it is optional':''}`;return nextDone?`. Page ${next} starts ${esc(surahName(onPage(next)[0]))}, which you’ve already memorized, so joining its first line is optional`:''})()}.`:'Watch where each verse stops and starts. Don’t stop at the last verse; join it to the next page.')}}
     else if(z.id==='rec'){title=`Record ${c} recitation${c>1?'s':''} from memory`;note=`Play them back while looking at the mushaf. Even one mistake means record all ${c} again.${x.recReset?` Restarted ${x.recReset}×.`:''}`}
     else if(z.id==='reps'){title=`Repeat ${c}× from memory`;note=`A repetition with a mistake doesn’t count.${x.miss?` ${x.miss} mistake${x.miss>1?'s':''} so far.`:''}`}
     else if(z.id==='join'){const split=x.split!=null?x.split:surahsOn(p).length>1;const own=it?it.s:surahOf(p);
@@ -519,7 +537,7 @@ function pageCard(p,st,ln){
     if(!z.req)note=(note?note+' ':'')+'<em>Optional.</em>';
     return `<div class="step ${ok?'ok':''} ${locked?'locked':''} ${col}"><span class="n">${ok?'✓':i}</span><div><div class="h">${title}</div>${note?`<div class="note">${note}</div>`:''}${ctl}</div></div>`;
   }).join('');
-  return `<section class="card"><div class="card-h"><div><div class="label">New page${ln?' · '+linesTxt(ln):''}</div><h2>Page ${p}</h2></div><span class="small muted">${esc(surahProgress(p))}</span></div>${surahsOn(p).length>1?`<p class="small muted" style="margin:-4px 0 8px">This page holds ${esc(surahsOn(p).join(', '))}. Memorize the part you’re on; the rest is already done or comes later.</p>`:''}
+  return `<section class="card"><div class="card-h"><div><div class="label">New page${ln?' · '+linesTxt(ln):''}</div><h2>Page ${p}</h2></div><span class="small muted">${esc(surahProgress(p,it&&it.k))}</span></div>${itemShared(it)?`<p class="small muted" style="margin:-4px 0 8px">This page holds ${esc(onPage(p).map(surahName).join(', '))}. Memorize only the ${esc(itemName(it))} part today.</p>`:''}
   <div class="steps">${body||'<div class="empty">No steps are turned on. Add some in Settings → New page checklist.</div>'}</div></section>`;
 }
 function stepSummary(){const st=S.settings;return st.steps.filter(z=>z.on).map(z=>(z.label||STEP_SHORT[z.id]||'Step')+(z.count>1?' ×'+z.count:'')).join(' · ')||'No steps set'}
@@ -530,7 +548,7 @@ function vConnection(){
   h+=`<div class="stats"><div class="stat"><b class="num">${s.cTotal}</b><span>in connection</span></div><div class="stat"><b class="num">${s.cDone}/${s.cTotal}</b><span>done today</span></div><div class="stat"><b class="num">${P.graduating}</b><span>move to revision tomorrow</span></div></div>`;
   if(!P.conn.length){h+=`<div class="empty">${P.yl?'Only yesterday’s page so far — it’s handled in Yesterday’s repetition. Tomorrow it joins Connection.':'Connection starts once you’ve memorized a couple of pages.'}</div>`;return h}
   const sorted=P.conn.slice().sort((a,b)=>Math.min(...a.pages)-Math.min(...b.pages));
-  const groups=[];sorted.forEach(l=>{const sn=ownerSurah(Math.min(...l.pages));const g=groups[groups.length-1];if(g&&g.s===sn)g.ls.push(l);else groups.push({s:sn,ls:[l]})});
+  const groups=[];sorted.forEach(l=>{const sn=ownerSurah(Math.min(...l.pages),l.keys&&l.keys[0]);const g=groups[groups.length-1];if(g&&g.s===sn)g.ls.push(l);else groups.push({s:sn,ls:[l]})});
   const row=l=>{const on=!!lg.conn[l.n];return `<div class="li"><button class="cb ${on?'on':''}" data-act="conn" data-n="${l.n}" aria-label="Mark page ${range(l.pages)} recited">✓</button><div class="m"><b>Page ${lessonLabel(l)}</b><div><span class="num">${Math.min(P.tgt,ccBefore(l.n,lg)+(on?1:0))}/${P.tgt}</span> · ${l.virtual?'Memorized before':'Lesson '+l.n}${l.virtual?'':' · '+fmt(fromKey(l.date),{month:'short',day:'numeric'})}</div></div>${l.pages.map(p=>`<button class="flag ${S.weak[p]?'on':''}" data-act="weak" data-p="${p}">${S.weak[p]?'Weak':'Flag'}</button>`).join('')}</div>`};
   h+=`<section class="card"><div class="card-h"><div><h2>Today’s connection</h2><div class="small muted">Grouped by surah, in reading order</div></div><button class="btn" data-act="connAll">${s.cDone===s.cTotal?'Clear all':'Mark all done'}</button></div>${groups.map(g=>{const pg=[].concat(...g.ls.map(l=>l.pages));const dn=g.ls.filter(l=>lg.conn[l.n]).length;const names=[...new Set([].concat(...pg.slice().sort((a,b)=>a-b).map(surahsOn)))];const label=names.length>2?names[0]+' – '+names[names.length-1]:names.join(', ');return `<div class="grp"><div class="grp-h"><b>${esc(label)}</b><span class="num">${pg.length>1?'pp. ':'p. '}${range(pg)} · ${dn}/${g.ls.length}</span></div><div class="list">${g.ls.map(row).join('')}</div></div>`}).join('')}</section>`;
   if(s.cDone===s.cTotal){
@@ -538,7 +556,7 @@ function vConnection(){
     const doneAhead=Object.keys(S.logs).filter(k=>k>t&&S.logs[k].conn&&Object.keys(S.logs[k].conn).length&&plan(k).conn.every(l=>S.logs[k].conn[l.n])).sort();
     if(ad||doneAhead.length){h+=`<section class="card"><div class="card-h"><div><div class="label">Ahead</div><h2>${ad?esc(cap(dayName(ad)))+'’s connection':'Connection ahead'}</h2></div>${doneAhead.length?chipFor('done',doneAhead.length+' day'+(doneAhead.length>1?'s':'')+' ahead'):''}</div>`;
       if(doneAhead.length)h+=`<p class="small muted" style="margin:-4px 0 8px">Already done: ${doneAhead.map(k=>esc(dayName(k))).join(', ')}.</p>`;
-      if(ad){const lg2=log(ad);h+=ui.aheadConn?`<p class="small muted" style="margin:0 0 4px">Each tick counts as ${esc(dayName(ad))}’s recitation of that page.</p><div class="list">${AP.conn.slice().sort((a,b)=>Math.min(...a.pages)-Math.min(...b.pages)).map(l=>{const on=!!lg2.conn[l.n];return `<div class="li"><button class="cb ${on?'on':''}" data-act="connA" data-d="${ad}" data-n="${l.n}" aria-label="Mark page ${range(l.pages)} recited">✓</button><div class="m"><b>Page ${lessonLabel(l)}</b><div>${esc(ownerSurah(Math.min(...l.pages)))} · <span class="num">${Math.min(P.tgt,ccBefore(l.n,lg2)+(on?1:0))}/${P.tgt}</span></div></div><span></span></div>`}).join('')}</div><div class="row"><button class="btn pri" data-act="connAllA" data-d="${ad}">Mark all done</button><button class="btn" data-act="connAheadClose">Close</button></div>`
+      if(ad){const lg2=log(ad);h+=ui.aheadConn?`<p class="small muted" style="margin:0 0 4px">Each tick counts as ${esc(dayName(ad))}’s recitation of that page.</p><div class="list">${AP.conn.slice().sort((a,b)=>Math.min(...a.pages)-Math.min(...b.pages)).map(l=>{const on=!!lg2.conn[l.n];return `<div class="li"><button class="cb ${on?'on':''}" data-act="connA" data-d="${ad}" data-n="${l.n}" aria-label="Mark page ${range(l.pages)} recited">✓</button><div class="m"><b>Page ${lessonLabel(l)}</b><div>${esc(ownerSurah(Math.min(...l.pages),l.keys&&l.keys[0]))} · <span class="num">${Math.min(P.tgt,ccBefore(l.n,lg2)+(on?1:0))}/${P.tgt}</span></div></div><span></span></div>`}).join('')}</div><div class="row"><button class="btn pri" data-act="connAllA" data-d="${ad}">Mark all done</button><button class="btn" data-act="connAheadClose">Close</button></div>`
         :`<div class="row" style="margin-top:0"><button class="btn" data-act="connAheadOpen">Do ${esc(dayName(ad))}’s connection now · ${AP.conn.length} page${AP.conn.length>1?'s':''}</button></div>`}
       h+='</section>'}
   }
@@ -600,11 +618,11 @@ function priorFields(st){
   let nx=st.priorTo-1;while(nx>=1&&!surahBlock(nx).length)nx--;
   const blk=st.priorTo>=2&&nx>=1?surahBlock(nx):[];
   const part=blk.length>1?`<div class="field"><div class="fl"><b>Plus pages of ${esc(SURAHS[nx-1][0])}</b><span>Counted from its start · ${blk.length} pages</span></div><input type="number" id="set-priorPart" data-set="priorPart" min="0" max="${blk.length-1}" value="${st.priorPart||0}" inputmode="numeric"></div>`:'';
-  const tp=todaysPages();const np=tp.done?null:tp.pages[0];
+  const tp=todaysPages();const np=tp.done?null:tp.pages[0];const nk=tp.keys&&tp.keys[0];
   return `<div class="field full"><div class="fl"><b>Memorized so far</b><span>These pages start in revision</span></div><select id="set-priorTo" data-set="priorTo" style="width:100%">${opts}</select></div>
    ${part}
    ${priorSet().size?`<div class="field"><div class="fl"><b>Still in connection</b><span>Your most recent memorized pages · each needs ${st.connTarget} recitations before revision</span></div><input type="number" id="set-priorConn" data-set="priorConn" min="0" max="${priorSet().size}" value="${st.priorConn||0}" inputmode="numeric"></div>`:''}
-   ${np?`<p class="small muted" style="margin:2px 0 4px">Next new page: p. ${np} · ${esc(surahProgress(np))}</p>`:''}`;
+   ${np?`<p class="small muted" style="margin:2px 0 4px">Next new page: p. ${np} · ${esc(surahProgress(np,nk))}</p>`:''}`;
 }
 function vSettings(){
   const st=S.settings;const D=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -645,7 +663,7 @@ function widgetDays(){
   for(let i=0;i<7;i++){const k=dk(d),s=status(k),tp=s.tp,P=s.P;
     const p=tp.pages[0];
     const page=tp.finished?'All memorized':s.rest&&!tp.done?'Rest day':p?'p. '+range(tp.pages):'—';
-    const sub=p&&!(s.rest&&!tp.done)?(tp.lines?(tp.lines[0]===tp.lines[1]?'Line ':'Lines ')+tp.lines[0]+(tp.lines[0]===tp.lines[1]?'':'–'+tp.lines[1])+' · ':'')+surahProgress(p).replace(/^Surah /,''):'Review only';
+    const sub=p&&!(s.rest&&!tp.done)?(tp.lines?(tp.lines[0]===tp.lines[1]?'Line ':'Lines ')+tp.lines[0]+(tp.lines[0]===tp.lines[1]?'':'–'+tp.lines[1])+' · ':'')+surahProgress(p,tp.keys&&tp.keys[0]).replace(/^Surahs? /,''):'Review only';
     const rows=[
       {tab:'memorize',label:'New page',done:s.newState!=='todo',detail:tp.done?'Done':s.rest?'Rest day':i===0?(s.newFrac>=1?'mark done':Math.round(s.newFrac*100)+'%'):'To do'},
       {tab:'memorize',label:'Yesterday',done:s.yDone,detail:!s.yNeed?'—':s.yDone?'Done':s.yCount+'/'+s.yT},
@@ -698,7 +716,7 @@ function act(a,d){
     case 'repMiss':{const x=pst(p);x.miss=(x.miss||0)+1;S.miss[p]=(S.miss[p]||0)+1;break}
     case 'aheadMemOpen':ui.aheadMem=true;ui.openStep={};render();return;
     case 'aheadMemClose':ui.aheadMem=false;ui.openStep={};render();return;
-    case 'complete':{const tp=workTarget();if(tp.done||!tp.pages.length)return;ui.aheadMem=false;const L={n:S.lessons.length+1,pages:tp.pages.slice(),date:tp.date};if(tp.lines)L.lines=tp.lines.slice();S.lessons.push(L);break}
+    case 'complete':{const tp=workTarget();if(tp.done||!tp.pages.length)return;ui.aheadMem=false;const L={n:S.lessons.length+1,pages:tp.pages.slice(),date:tp.date};if(tp.keys&&tp.keys.length)L.keys=tp.keys.slice();if(tp.lines)L.lines=tp.lines.slice();S.lessons.push(L);break}
     case 'ySplitTog':{const P=plan();if(!P.yl)return;P.yl.split=!joinSplit(P.yl);break}
     case 'y':{const lg=log(),P=plan();if(!P.yl)return;const yt=yTarget(P.yl);lg.y=Math.min(yt,(lg.y||0)+1);if(lg.y>=yt)P.yl.yDate=t;buzz();keepAwake();break}
     case 'yUndo':{const lg=log(),P=plan();lg.y=Math.max(0,(lg.y||0)-1);if(P.yl&&P.yl.yDate===t&&lg.y<yTarget(P.yl))delete P.yl.yDate;break}
