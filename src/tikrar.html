@@ -264,7 +264,7 @@ function range(pages){if(!pages.length)return'';const a=[...pages].sort((x,y)=>x
 const STEP_DEF=[{id:"listen",on:true,req:true,count:3},{id:"tafsir",on:true,req:true,count:1},{id:"memo",on:true,req:true,count:1},{id:"rec",on:true,req:true,count:3},{id:"reps",on:true,req:true,count:40}];
 const STEP_SHORT={listen:"Listen",tafsir:"Tafsir",memo:"Memorize",rec:"Record",reps:"Repeat"};
 const STEP_NAMES={listen:"Listen to a reciter",tafsir:"Read the tafsir",memo:"Memorize the page",rec:"Record clean recitations",reps:"Repeat from memory"};
-const DEF={joinReps:40,weakClear:20,priorConn:0,inOrder:true,steps:STEP_DEF.map(x=>({...x})),priorTo:0,priorPart:0,order:"surah",startPage:604,dir:-1,ppd:'1',listen:3,rec:3,reps:40,yreps:5,connTarget:10,cycle:6,rest:[],prior:""};
+const DEF={dayStart:3,joinReps:40,weakClear:20,priorConn:0,inOrder:true,steps:STEP_DEF.map(x=>({...x})),priorTo:0,priorPart:0,order:"surah",startPage:604,dir:-1,ppd:'1',listen:3,rec:3,reps:40,yreps:5,connTarget:10,cycle:6,rest:[],prior:""};
 const LS='tikrar-tracker-v1';
 const CLIENT=Math.random().toString(36).slice(2);
 function fresh(){return{v:1,setup:false,settings:{...DEF},lessons:[],logs:{},done:{},revCursor:0,weak:{},miss:{},cc:{},pp:{},wk:{},wkNo:{},recovered:[],revLog:{},revStack:[],revExtra:{},revNum:{},revTicks:{},round:null,updated:0}}
@@ -273,7 +273,9 @@ let S=fresh();
 try{const raw=localStorage.getItem(LS);if(raw)S=normalize(JSON.parse(raw))}catch(e){}
 const ui={openStep:{},tab:'today',confirmReset:false,confirmUndo:false,sync:'device'};
 
-function dk(d=new Date()){const z=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())}
+function dayStartH(){const v=S&&S.settings?S.settings.dayStart:3;return v>=0&&v<=6?v:3}
+function appNow(){return new Date(Date.now()-dayStartH()*3600e3)}
+function dk(d=appNow()){const z=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())}
 const TODAY=()=>dk();
 function fromKey(k){return new Date(k+'T12:00:00')}
 function isRest(k){return S.settings.rest.includes(fromKey(k).getDay())&&!(S.logs[k]&&S.logs[k].work)}
@@ -288,7 +290,7 @@ function workTarget(){const tp=todaysPages();if(tp.done&&ui.aheadMem){const d=ah
 function pkey(p){const tp=workTarget();const i=tp.pages.indexOf(p);const it=i>=0&&tp.keys?itemOf(p,tp.keys[i]):null;const sfx=it&&it!==itemOf(p)?'S'+it.ss[0]:'';return (tp.lines&&tp.pages[0]===p?p+'L'+tp.lines[0]:''+p)+sfx}
 function pst(p){const k=pkey(p);return S.pp[k]||(S.pp[k]={n:{},recReset:0,miss:0})}
 const fmt=(d,o)=>d.toLocaleDateString(undefined,o);
-function hijri(){try{return new Intl.DateTimeFormat('en-u-ca-islamic-umalqura',{day:'numeric',month:'long',year:'numeric'}).format(new Date())}catch(e){return''}}
+function hijri(){try{return new Intl.DateTimeFormat('en-u-ca-islamic-umalqura',{day:'numeric',month:'long',year:'numeric'}).format(appNow())}catch(e){return''}}
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 /* ---------- Schedule logic ---------- */
@@ -381,14 +383,14 @@ function status(t=TODAY()){
 function refreshDone(){const d=fromKey(TODAY());for(let i=0;i<10;i++){const k=dk(d);const s=status(k);if(s.allDone)S.done[k]=1;else delete S.done[k];d.setDate(d.getDate()+1)}}
 function streak(){
   const first=S.lessons[0]?.date;if(!first)return 0;
-  const d=new Date();if(!S.done[dk(d)]&&!status().allDone)d.setDate(d.getDate()-1);
+  const d=appNow();if(!S.done[dk(d)]&&!status().allDone)d.setDate(d.getDate()-1);
   let n=0;for(let i=0;i<3000;i++){const k=dk(d);if(k<first)break;if(S.done[k]||(k===TODAY()&&status().allDone))n++;else if(!isRest(k))break;d.setDate(d.getDate()-1)}
   return n;
 }
 function projection(){
   const st=S.settings;let rem=TOTAL-memorizedSet().size;if(rem<=0)return'Complete';
   if(st.rest.length>=7)return'—';
-  const d=new Date();if(todaysPages().done)d.setDate(d.getDate()+1);
+  const d=appNow();if(todaysPages().done)d.setDate(d.getDate()+1);
   let g=0;while(g<6000){if(!st.rest.includes(d.getDay())){rem-=amtPages(st.ppd);if(rem<=0)break}d.setDate(d.getDate()+1);g++}
   return fmt(d,{month:'short',year:'numeric'});
 }
@@ -398,7 +400,7 @@ let docRef=null,saving=false,pending=false,timer=null;
 function save(){
   S.updated=Date.now();
   // keep only ~70 days of detailed logs
-  const cut=new Date();cut.setDate(cut.getDate()-70);const ck=dk(cut);
+  const cut=appNow();cut.setDate(cut.getDate()-70);const ck=dk(cut);
   Object.keys(S.logs).forEach(k=>{if(k<ck)delete S.logs[k]});Object.keys(S.revLog).forEach(k=>{if(k<ck)delete S.revLog[k]});Object.keys(S.revExtra).forEach(k=>{if(k<ck)delete S.revExtra[k]});if(S.revStack.length>40)S.revStack=S.revStack.slice(-40);
   try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}
   if(!docRef)return;
@@ -452,7 +454,7 @@ function ring(count,target,act,data){
   return `<button class="ring" data-act="${act}" ${data} aria-label="Add one clean repetition"><svg viewBox="0 0 112 112"><circle class="bg" cx="56" cy="56" r="${r}"/><circle class="fg" cx="56" cy="56" r="${r}" stroke-dasharray="${c}" stroke-dashoffset="${c*(1-f)}"/></svg><span class="c"><b class="num">${count}</b><span class="num">of ${target}</span></span></button>`;
 }
 function header(){
-  const today=fmt(new Date(),{weekday:'long',month:'long',day:'numeric'});const h=hijri();
+  const today=fmt(appNow(),{weekday:'long',month:'long',day:'numeric'});const h=hijri();
   return `<header class="top"><div class="mark" aria-hidden="true">تكرار</div><div class="top-txt"><h1>Tikrar Hifz Tracker</h1><div class="d">${today}${h?' · '+h:''}</div></div><button class="icon-btn" data-act="tab" data-v="settings" aria-label="Settings">${IC.gear}</button></header>`;
 }
 function taskRow(tab,title,sub,state,frac,chip){
@@ -647,6 +649,7 @@ function vSettings(){
    ${priorFields(st)}
    <div class="field"><div class="fl"><b>Usual amount per day</b><span>${(m=>m>=12?'About '+Math.floor(m/12)+' yr'+(m%12?' '+(m%12)+' mo':''):'About '+m+' months')(Math.round(604/amtPages(st.ppd)/30.4))} for the whole Quran</span></div><select id="set-ppd" data-set="ppd">${['1L','2L','3L','4L','5L','6L','half','1','2','3'].map(k=>`<option value="${k}" ${st.ppd===k?'selected':''}>${amtLabel(k)}</option>`).join('')}</select></div>
    <div class="field full"><div class="fl"><b>Rest days</b><span>No new page; review continues</span></div><div class="days">${D.map((d,i)=>`<button data-act="restDay" data-i="${i}" class="${st.rest.includes(i)?'on':''}" aria-pressed="${st.rest.includes(i)}">${d}</button>`).join('')}</div></div>
+   <div class="field"><div class="fl"><b>New day starts at</b><span>Work done before this time counts for the previous day</span></div><select id="set-dayStart" data-set="dayStart">${[0,1,2,3,4,5,6].map(h=>`<option value="${h}" ${dayStartH()===h?'selected':''}>${h===0?'Midnight':h+':00 am'}</option>`).join('')}</select></div>
   </section>`;
   h+=`<section class="card"><div class="card-h"><h2>New page checklist</h2></div><p class="small muted" style="margin:0 0 6px">The page can be marked memorized once every <b>required</b> step is done. Set × to 1 for a checkbox, or higher for a counter.</p>
    <div class="slist">${st.steps.map((z,k)=>`<div class="srow ${z.on?'':'off'}"><button class="sw ${z.on?'on':''}" data-act="stepOn" data-id="${z.id}" aria-pressed="${z.on}" aria-label="${z.on?'Turn off':'Turn on'} step"></button><input type="text" id="step-${z.id}" data-step-label="${z.id}" value="${esc(z.label||STEP_NAMES[z.id]||'')}" aria-label="Step name"><div class="sbtns"><label class="cnt">×<input type="number" id="cnt-${z.id}" data-stepcount="${z.id}" min="1" max="500" value="${z.count}" inputmode="numeric" aria-label="How many times"></label><button class="flag ${z.req?'on':''}" data-act="stepReq" data-id="${z.id}" ${z.on?'':'disabled'}>${z.req?'Required':'Optional'}</button><button class="mini" data-act="stepMove" data-id="${z.id}" data-dir="-1" ${k?'':'disabled'} aria-label="Move up">↑</button><button class="mini" data-act="stepMove" data-id="${z.id}" data-dir="1" ${k<st.steps.length-1?'':'disabled'} aria-label="Move down">↓</button>${z.custom?`<button class="mini" data-act="stepDel" data-id="${z.id}" aria-label="Remove step">✕</button>`:''}</div></div>`).join('')}</div>
@@ -688,7 +691,7 @@ function widgetDays(){
   return out;
 }
 let lastWidget='';
-function pushWidget(){if(!window.AndroidBridge||!AndroidBridge.updateWidget)return;try{const j=JSON.stringify({v:1,days:widgetDays()});if(j!==lastWidget){lastWidget=j;AndroidBridge.updateWidget(j)}}catch(e){}}
+function pushWidget(){if(!window.AndroidBridge||!AndroidBridge.updateWidget)return;try{const j=JSON.stringify({v:1,dayStart:dayStartH(),days:widgetDays()});if(j!==lastWidget){lastWidget=j;AndroidBridge.updateWidget(j)}}catch(e){}}
 function goBack(){if(ui.tab!=='today'){act('tab',{v:'today'});return'stay'}return'exit'}
 function render(){
   const v={today:vToday,memorize:vMemorize,connection:vConnection,revision:vRevision,progress:vProgress,settings:vSettings}[ui.tab]||vToday;
@@ -798,7 +801,7 @@ document.addEventListener('change',e=>{
   if(k==='prior')st.prior=el.value.trim();
   else if(k==='order')st.order=['surah','forward','backward'].includes(el.value)?el.value:'surah';
   else{if(k==='priorTo')st.priorPart=0;
-  const lim={joinReps:[0,200],weakClear:[1,60],priorConn:[0,604],priorTo:[0,114],priorPart:[0,300],startPage:[1,604],ppd:[1,5],listen:[1,10],rec:[1,10],reps:[1,200],yreps:[1,50],connTarget:[1,60],cycle:[1,60]}[k];let v=parseInt(el.value,10);if(isNaN(v))v=DEF[k];v=Math.max(lim[0],Math.min(lim[1],v));if(k==='priorConn')v=Math.min(v,priorSet().size);st[k]=v}
+  const lim={dayStart:[0,6],joinReps:[0,200],weakClear:[1,60],priorConn:[0,604],priorTo:[0,114],priorPart:[0,300],startPage:[1,604],ppd:[1,5],listen:[1,10],rec:[1,10],reps:[1,200],yreps:[1,50],connTarget:[1,60],cycle:[1,60]}[k];let v=parseInt(el.value,10);if(isNaN(v))v=DEF[k];v=Math.max(lim[0],Math.min(lim[1],v));if(k==='priorConn')v=Math.min(v,priorSet().size);st[k]=v}
   refreshDone();save();render();
 });
 const TABS=['today','memorize','connection','revision','progress'];

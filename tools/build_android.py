@@ -483,9 +483,11 @@ public class TikrarWidget extends AppWidgetProvider {
         JSONObject day = null;
         try {
             String json = c.getSharedPreferences("tikrar", Context.MODE_PRIVATE).getString("widget", null);
-            String today = new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
             if (json != null) {
-                JSONArray days = new JSONObject(json).getJSONArray("days");
+                JSONObject root = new JSONObject(json);
+                int startH = root.optInt("dayStart", 0);
+                String today = new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date(System.currentTimeMillis() - startH * 3600000L));
+                JSONArray days = root.getJSONArray("days");
                 for (int i = 0; i < days.length(); i++) {
                     JSONObject d = days.getJSONObject(i);
                     if (today.equals(d.optString("date"))) { day = d; break; }
