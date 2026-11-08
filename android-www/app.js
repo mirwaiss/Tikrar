@@ -5,6 +5,7 @@ const JUZ=[1,22,42,62,82,102,121,142,162,182,201,222,242,262,282,302,322,342,362
 const TOTAL=604;
 const SURAH_END=[1, 49, 76, 106, 127, 150, 176, 186, 207, 221, 235, 248, 255, 261, 267, 281, 293, 304, 312, 321, 331, 341, 349, 359, 366, 376, 385, 396, 404, 410, 414, 417, 427, 434, 440, 445, 452, 458, 467, 476, 482, 489, 495, 498, 502, 506, 510, 515, 517, 520, 523, 525, 528, 531, 534, 537, 541, 545, 548, 551, 552, 554, 555, 557, 559, 561, 564, 566, 568, 570, 571, 573, 575, 577, 578, 580, 581, 583, 584, 585, 586, 587, 589, 589, 590, 591, 592, 592, 594, 594, 595, 596, 596, 596, 597, 597, 598, 599, 599, 600, 600, 600, 601, 601, 601, 602, 602, 602, 603, 603, 603, 604, 604, 604];
 function onPage(p){const out=[];SURAHS.forEach(([n,st],i)=>{if(st<=p&&SURAH_END[i]>=p)out.push(i+1)});return out}
+function PL(p){return p<=2?8:15}
 function surahName(n){return SURAHS[n-1][0]}
 let ITEMS=null,ITEM_BY_KEY=null,ITEMS_BY_PAGE=null;
 function seqItems(){if(ITEMS)return ITEMS;const out=[];
@@ -31,21 +32,21 @@ function range(pages){if(!pages.length)return'';const a=[...pages].sort((x,y)=>x
 const STEP_DEF=[{id:"listen",on:true,req:true,count:3},{id:"tafsir",on:true,req:true,count:1},{id:"memo",on:true,req:true,count:1},{id:"rec",on:true,req:true,count:3},{id:"reps",on:true,req:true,count:40}];
 const STEP_SHORT={listen:"Listen",tafsir:"Tafsir",memo:"Memorize",rec:"Record",reps:"Repeat"};
 const STEP_NAMES={listen:"Listen to a reciter",tafsir:"Read the tafsir",memo:"Memorize the page",rec:"Record clean recitations",reps:"Repeat from memory"};
-const DEF={dayStart:3,joinReps:40,weakClear:20,priorConn:0,inOrder:true,steps:STEP_DEF.map(x=>({...x})),priorTo:0,priorPart:0,order:"surah",startPage:604,dir:-1,ppd:'1',listen:3,rec:3,reps:40,yreps:5,connTarget:10,cycle:6,rest:[],prior:""};
+const DEF={dayStart:3,joinReps:40,weakClear:20,weakL1:10,weakL2:20,weakL3:40,weakStep:true,priorConn:0,inOrder:true,steps:STEP_DEF.map(x=>({...x})),priorTo:0,priorPart:0,order:"surah",startPage:604,dir:-1,ppd:'1',listen:3,rec:3,reps:40,yreps:5,connTarget:10,cycle:6,rest:[],prior:""};
 const LS='tikrar-tracker-v1';
 const CLIENT=Math.random().toString(36).slice(2);
 function fresh(){return{v:1,setup:false,settings:{...DEF},lessons:[],logs:{},done:{},revCursor:0,weak:{},miss:{},cc:{},pp:{},wk:{},wkNo:{},recovered:[],revLog:{},revStack:[],revExtra:{},revNum:{},revTicks:{},round:null,updated:0}}
 function repairLessons(s){let n=0;const td=dk();
   s.lessons.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.n-b.n));
   const seen={};const before=s.lessons.length;s.lessons=s.lessons.filter(l=>{const k=((l.keys&&l.keys[0])||l.pages.join(','))+'@'+(l.lines?l.lines.join('-'):'all');if(seen[k]&&!l.yDate)return false;seen[k]=1;return true});n+=before-s.lessons.length;
-  const ends={};s.lessons.forEach(l=>{if(!l.lines)return;const key=(l.keys&&l.keys[0])||String(l.pages[0]);const prev=ends[key]||0;if(l.lines[0]<=prev&&prev<15){const len=l.lines[1]-l.lines[0];const a=prev+1;l.lines=[a,Math.min(15,a+len)];n++}ends[key]=Math.max(prev,l.lines[1])});
+  const ends={};s.lessons.forEach(l=>{if(!l.lines)return;const key=(l.keys&&l.keys[0])||String(l.pages[0]);const prev=ends[key]||0;if(l.lines[0]<=prev&&prev<PL(l.pages[0])){const len=l.lines[1]-l.lines[0];const a=prev+1;l.lines=[a,Math.min(PL(l.pages[0]),a+len)];n++}ends[key]=Math.max(prev,l.lines[1])});
   let li=-1;s.lessons.forEach((l,i)=>{if(l.date<td&&l.yDate)li=i});const stale=new Set();s.lessons.forEach((l,i)=>{if(i<li&&!l.yDate){l.yDate=l.date;stale.add(String(l.n));n++}});
   const head=s.lessons.find((l,i)=>i>li&&l.date<td&&!l.yDate);const tg=s.logs&&s.logs[td];
-  if(head&&tg&&tg.yc){let moved=0;Object.keys(tg.yc).forEach(k=>{if(stale.has(k)){moved=Math.max(moved,tg.yc[k]);delete tg.yc[k]}});if(moved&&!tg.yc[head.n]){const tgt=(head.lines&&head.lines[0]>1&&head.lines[1]>=15&&s.settings.joinReps>0)?s.settings.joinReps:s.settings.yreps;tg.yc[head.n]=Math.min(moved,tgt);if(moved>=tgt)head.yDate=td}}
+  if(head&&tg&&tg.yc){let moved=0;Object.keys(tg.yc).forEach(k=>{if(stale.has(k)){moved=Math.max(moved,tg.yc[k]);delete tg.yc[k]}});if(moved&&!tg.yc[head.n]){const tgt=(head.lines&&head.lines[0]>1&&head.lines[1]>=PL(head.pages[0])&&s.settings.joinReps>0)?s.settings.joinReps:s.settings.yreps;tg.yc[head.n]=Math.min(moved,tgt);if(moved>=tgt)head.yDate=td}}
   if(n)s.updated=Date.now();return n}
 function normalize(o){const f=fresh();if(!o||typeof o!=='object')return f;const s={...f,...o};s.settings={...DEF,...(o.settings||{})};if(o.settings&&!o.settings.order)s.settings.order=o.settings.dir===-1?'backward':'forward';['logs','done','weak','miss','cc','pp','wk','wkNo','revExtra','revNum','revTicks'].forEach(k=>{if(!s[k]||typeof s[k]!=='object')s[k]={}});if(!Array.isArray(s.lessons))s.lessons=[];s.lessons.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.n-b.n));repairLessons(s);
   if(!s.fixYq){s.fixYq=1;const lim=fromKey(dk());lim.setDate(lim.getDate()-7);const lk=dk(lim);s.lessons.forEach(l=>{if(!l.yDate&&l.date<lk)l.yDate=l.date});const tg=s.logs[dk()];if(tg&&tg.y){const pr=s.lessons.filter(l=>l.date<dk()&&!l.yDate);if(pr.length){tg.yc=tg.yc||{};tg.yc[pr[pr.length-1].n]=tg.y}}}
-  if(!s.fix3am&&s.lessons.length){s.fix3am=1;const last=s.lessons[s.lessons.length-1];const td=dk();if(last&&!last.at&&last.date===td){const y=fromKey(td);y.setDate(y.getDate()-1);const yk=dk(y);if(!s.lessons.some(l=>l.date===yk)){last.date=yk;s.updated=Date.now()}}}else if(!s.fix3am)s.fix3am=1;s.lessons.forEach(l=>{if(l.half){l.lines=l.half===1?[1,8]:[9,15];delete l.half}});Object.keys(s.pp||{}).forEach(k=>{const m=k.match(/^(\d+)h([12])$/);if(m){s.pp[m[1]+'L'+(m[2]==='1'?1:9)]=s.pp[k];delete s.pp[k]}});Object.values(s.logs||{}).forEach(g=>{if(g&&g.ppd!=null)g.ppd=normAmt(g.ppd)});if(!s.revLog||typeof s.revLog!=='object')s.revLog={};if(!s.revExtra||typeof s.revExtra!=='object')s.revExtra={};{const td=dk();Object.keys(s.revLog).filter(k=>k>td).sort().forEach(k=>{(s.revExtra[td]=s.revExtra[td]||[]).push(s.revLog[k]);delete s.revLog[k]});(s.revStack||[]).forEach(e=>{if(e.date>td){e.date=td;e.extra=true}})}if(!Array.isArray(s.revStack))s.revStack=[];{const tg=s.logs&&s.logs[dk()];if(tg&&tg.revDone&&tg.revPortion&&!s.revLog[dk()]){s.revLog[dk()]=tg.revPortion;s.revStack.push({date:dk(),prev:tg.revPrev||0})}}if(!Array.isArray(s.recovered))s.recovered=[];if(!o.wk20){s.settings.weakClear=20;s.wk20=1}Object.keys(s.weak).forEach(k=>{if(s.weak[k]&&!s.wk[k])s.wk[k]={since:dk(),reviews:0,clean:0,mistakes:0,last:null,note:''}});s.weak={};Object.keys(s.wk).forEach(k=>s.weak[k]=1);if(!o.pp){const tl=s.logs[dk()];if(tl&&tl.pages)Object.keys(tl.pages).forEach(k=>{s.pp[k]=tl.pages[k]})}s.settings.order='surah';s.settings.startPage=TOTAL;if(!Array.isArray(s.settings.rest))s.settings.rest=[];if(!Array.isArray(s.settings.steps))s.settings.steps=STEP_DEF.map(x=>({...x}));s.settings.steps=s.settings.steps.filter(x=>x&&x.id&&(STEP_NAMES[x.id]||x.custom));STEP_DEF.forEach(d=>{if(!s.settings.steps.some(x=>x.id===d.id))s.settings.steps.push({...d,on:false})});s.settings.steps.forEach(z=>{if(!(z.count>=1))z.count=z.id==='listen'?(o.settings&&o.settings.listen)||3:z.id==='rec'?(o.settings&&o.settings.rec)||3:z.id==='reps'?(o.settings&&o.settings.reps)||40:1});s.settings.ppd=normAmt(s.settings.ppd);return s}
+  if(!s.fix3am&&s.lessons.length){s.fix3am=1;const last=s.lessons[s.lessons.length-1];const td=dk();if(last&&!last.at&&last.date===td){const y=fromKey(td);y.setDate(y.getDate()-1);const yk=dk(y);if(!s.lessons.some(l=>l.date===yk)){last.date=yk;s.updated=Date.now()}}}else if(!s.fix3am)s.fix3am=1;s.lessons.forEach(l=>{if(l.half){l.lines=l.half===1?[1,8]:[9,15];delete l.half}});Object.keys(s.pp||{}).forEach(k=>{const m=k.match(/^(\d+)h([12])$/);if(m){s.pp[m[1]+'L'+(m[2]==='1'?1:9)]=s.pp[k];delete s.pp[k]}});Object.values(s.logs||{}).forEach(g=>{if(g&&g.ppd!=null)g.ppd=normAmt(g.ppd)});if(!s.revLog||typeof s.revLog!=='object')s.revLog={};if(!s.revExtra||typeof s.revExtra!=='object')s.revExtra={};{const td=dk();Object.keys(s.revLog).filter(k=>k>td).sort().forEach(k=>{(s.revExtra[td]=s.revExtra[td]||[]).push(s.revLog[k]);delete s.revLog[k]});(s.revStack||[]).forEach(e=>{if(e.date>td){e.date=td;e.extra=true}})}if(!Array.isArray(s.revStack))s.revStack=[];{const tg=s.logs&&s.logs[dk()];if(tg&&tg.revDone&&tg.revPortion&&!s.revLog[dk()]){s.revLog[dk()]=tg.revPortion;s.revStack.push({date:dk(),prev:tg.revPrev||0})}}if(!Array.isArray(s.recovered))s.recovered=[];if(!o.wk20){s.settings.weakClear=20;s.wk20=1}if(!o.wkLv){s.wkLv=1;s.settings.weakL2=s.settings.weakClear||20;Object.keys(s.wk||{}).forEach(k=>{if(!s.wk[k].level)s.wk[k].level=2})}Object.keys(s.weak).forEach(k=>{if(s.weak[k]&&!s.wk[k])s.wk[k]={since:dk(),reviews:0,clean:0,mistakes:0,last:null,note:''}});s.weak={};Object.keys(s.wk).forEach(k=>s.weak[k]=1);if(!o.pp){const tl=s.logs[dk()];if(tl&&tl.pages)Object.keys(tl.pages).forEach(k=>{s.pp[k]=tl.pages[k]})}s.settings.order='surah';s.settings.startPage=TOTAL;if(!Array.isArray(s.settings.rest))s.settings.rest=[];if(!Array.isArray(s.settings.steps))s.settings.steps=STEP_DEF.map(x=>({...x}));s.settings.steps=s.settings.steps.filter(x=>x&&x.id&&(STEP_NAMES[x.id]||x.custom));STEP_DEF.forEach(d=>{if(!s.settings.steps.some(x=>x.id===d.id))s.settings.steps.push({...d,on:false})});s.settings.steps.forEach(z=>{if(!(z.count>=1))z.count=z.id==='listen'?(o.settings&&o.settings.listen)||3:z.id==='rec'?(o.settings&&o.settings.rec)||3:z.id==='reps'?(o.settings&&o.settings.reps)||40:1});s.settings.ppd=normAmt(s.settings.ppd);return s}
 let S=fresh();
 try{const raw=localStorage.getItem(LS);if(raw)S=normalize(JSON.parse(raw))}catch(e){}
 const ui={openStep:{},tab:'today',confirmReset:false,confirmUndo:false,sync:'device'};
@@ -84,9 +85,9 @@ function priorItems(){const out=new Set();const st=S.settings;
   (S.settings.prior||'').split(/[,\s]+/).forEach(t=>{const m=t.match(/^(\d+)(?:[-–](\d+))?$/);if(!m)return;let a=+m[1],b=m[2]?+m[2]:a;if(a>b)[a,b]=[b,a];for(let p=Math.max(1,a);p<=Math.min(TOTAL,b);p++)(ITEMS_BY_PAGE[p]||[]).forEach(x=>out.add(x.k))});
   return out}
 function priorSet(){seqItems();const s=new Set();priorItems().forEach(k=>s.add(ITEM_BY_KEY[k].p));return s}
-function memItems(){const out=priorItems();S.lessons.forEach(l=>{if(l.lines&&l.lines[1]<15&&!(l.keys&&itemShared(lessonItem(l))))return;if(l.keys)l.keys.forEach(k=>out.add(k));else l.pages.forEach(p=>(ITEMS_BY_PAGE[p]||[]).forEach(x=>out.add(x.k)))});return out}
+function memItems(){const out=priorItems();S.lessons.forEach(l=>{if(l.lines&&l.lines[1]<PL(l.pages[0])&&!(l.keys&&itemShared(lessonItem(l))))return;if(l.keys)l.keys.forEach(k=>out.add(k));else l.pages.forEach(p=>(ITEMS_BY_PAGE[p]||[]).forEach(x=>out.add(x.k)))});return out}
 function memorizedSet(){const mi=memItems(),s=new Set();Object.keys(ITEMS_BY_PAGE).forEach(p=>{if(ITEMS_BY_PAGE[p].every(x=>mi.has(x.k)))s.add(+p)});return s}
-function isJoinLesson(l){return !!(l&&l.lines&&l.lines[0]>1&&l.lines[1]>=15&&S.settings.joinReps>0)}
+function isJoinLesson(l){return !!(l&&l.lines&&l.lines[0]>1&&l.lines[1]>=PL(l.pages[0])&&S.settings.joinReps>0)}
 function yTarget(l){return isJoinLesson(l)?S.settings.joinReps:S.settings.yreps}
 function joinSplit(l){return l.split!=null?l.split:itemShared(lessonItem(l))}
 function yDesc(l){if(!isJoinLesson(l))return 'Page '+lessonLabel(l);const p=l.pages[0];return joinSplit(l)?`The ${surahName(lessonItem(l).ss[0])} part of p. ${p}, both parts joined`:`Whole page ${p}, both parts joined`}
@@ -96,14 +97,14 @@ function lessonFor(t){
   const done=S.lessons.find(l=>l.date===t);
   if(done)return{pages:done.pages,keys:done.keys||null,lines:done.lines||null,done:true,lesson:done};
   const st=S.settings,mi=memItems(),amt=dayPpd(t),part=amt==='half'||/L$/.test(amt);
-  const span=a=>amt==='half'?[a,Math.min(15,a+7)]:/L$/.test(amt)?[a,Math.min(15,a+parseInt(amt)-1)]:[a,15];
+  const span=(a,p)=>{const m=PL(p);return amt==='half'?[a,Math.min(m,a+Math.ceil(m/2)-1)]:/L$/.test(amt)?[a,Math.min(m,a+parseInt(amt)-1)]:[a,m]};
   const seq=seqItems();
   const first=seq.find(x=>!mi.has(x.k));
-  if(first&&!itemShared(first)){let end=0;S.lessons.forEach(l=>{if(l.lines&&lessonItem(l)===first)end=Math.max(end,l.lines[1])});if(end>0&&end<15)return{pages:[first.p],keys:[first.k],lines:span(end+1),done:false,cont:true}}
+  if(first&&!itemShared(first)){let end=0;S.lessons.forEach(l=>{if(l.lines&&lessonItem(l)===first)end=Math.max(end,l.lines[1])});if(end>0&&end<PL(first.p))return{pages:[first.p],keys:[first.k],lines:span(end+1,first.p),done:false,cont:true}}
   if(seq.every(x=>mi.has(x.k)))return{pages:[],keys:[],lines:null,done:false,finished:true};
   const want=part?1:parseInt(amt),out=[];
   for(const x of seq){if(out.length>=want)break;if(!mi.has(x.k))out.push(x)}
-  return{pages:out.map(x=>x.p),keys:out.map(x=>x.k),lines:part&&out.length&&!itemShared(out[0])?span(1):null,done:false};
+  return{pages:out.map(x=>x.p),keys:out.map(x=>x.k),lines:part&&out.length&&!itemShared(out[0])?span(1,out[0].p):null,done:false};
 }
 function recentPrior(){const st=S.settings,N=Math.max(0,st.priorConn|0);if(!N)return[];
   const pr=priorItems();const ps=[];seqItems().forEach(x=>{if(pr.has(x.k)&&!ps.includes(x.p))ps.push(x.p)});const lp=new Set();S.lessons.forEach(l=>l.pages.forEach(q=>lp.add(q)));return ps.slice(-N).filter(q=>!lp.has(q))}
@@ -114,8 +115,8 @@ function connMissed(l,t){const tgt=Math.max(1,S.settings.connTarget|0);const lgT
   let from;if(l.virtual)from=appStart();else{const yd=l.yDate||(()=>{const d=fromKey(l.date);d.setDate(d.getDate()+1);return dk(d)})();const d=fromKey(yd);d.setDate(d.getDate()+1);from=dk(d)}
   const out=[];const d=fromKey(from);while(dk(d)<t){const k=dk(d),g=S.logs[k];if(!(g&&g.conn&&g.conn[l.n]))out.push(k);d.setDate(d.getDate()+1)}
   return out.slice(0,left)}
-function completesPage(l){return !!(l.lines&&l.lines[0]>1&&l.lines[1]>=15)}
-function supersededPart(l){if(!l.lines||l.lines[1]>=15||l.virtual)return false;const it=lessonItem(l);return S.lessons.some(j=>j!==l&&completesPage(j)&&lessonItem(j)===it&&j.date>=l.date)}
+function completesPage(l){return !!(l.lines&&l.lines[0]>1&&l.lines[1]>=PL(l.pages[0]))}
+function supersededPart(l){if(!l.lines||l.lines[1]>=PL(l.pages[0])||l.virtual)return false;const it=lessonItem(l);return S.lessons.some(j=>j!==l&&completesPage(j)&&lessonItem(j)===it&&j.date>=l.date)}
 function connLabel(l){if(!completesPage(l))return lessonLabel(l);const it=lessonItem(l);return range(l.pages)+(it&&itemShared(it)?` (${surahName(it.ss[0])} part)`:'')}
 function plan(t=TODAY()){
   const st=S.settings,lg=S.logs[t]||{};
@@ -260,10 +261,10 @@ function vToday(){
   h+=`<div class="tasks">
    ${taskRow('memorize','New page',s.rest&&!s.tp.done?'Rest day — no new page':(s.tp.done?'Done · page '+lessonLabel(s.tp.lesson):s.tp.finished?'All 604 pages memorized':stepSummary()),s.newState,s.newFrac,s.newState==='done'?chipFor('done','Done'):s.newState==='rest'?chipFor('rest','Rest'):chipFor(s.newFrac>0?'prog':'',Math.round(s.newFrac*100)+'%'))}
    ${taskRow('memorize','Yesterday’s repetition',s.yNeed?(isJoinLesson(P.yl)?'Whole page '+P.yl.pages[0]+' joined':'Page '+yPages)+' · '+s.yT+'× from memory'+(P.yQueue.length>1?' · '+P.yQueue.length+' due':''):'Nothing from yesterday',s.yDone?'done':'todo',s.yCount/s.yT,s.yDone?chipFor('done',s.yNeed?'Done':'—'):chipFor(s.yCount?'prog':'',s.yCount+'/'+s.yT))}
-   ${taskRow('connection','Connection',s.cTotal?(n=>n+' page'+(n>1?'s':'')+' · once each, '+P.tgt+' times in all')([...new Set([].concat(...P.conn.map(l=>l.pages)))].length):'Builds up as you memorize',s.cDone===s.cTotal?'done':'todo',s.cTotal?s.cDone/s.cTotal:1,s.cDone===s.cTotal?chipFor('done',s.cTotal?'Done':'—'):chipFor(s.cDone?'prog':'',s.cDone+'/'+s.cTotal))}
+   ${taskRow('connection','Connection',s.cTotal?(n=>n+' page'+(n>1?'s':'')+' · once each, '+P.tgt+' times in all')([...new Set([].concat(...P.conn.map(l=>l.pages)))].length):'Builds up as you memorize',s.cDone===s.cTotal?'done':'todo',s.cTotal?s.cDone/s.cTotal:1,s.cDone===s.cTotal?chipFor('done',s.cTotal?'Done':'—'):chipFor(s.cDone?'prog':'',s.cDone+'/'+P.conn.length+(s.cOwed?' · '+s.cOwed+' missed':'')))}
    ${taskRow('revision','Revision',s.rNeed?(s.rDone?(lastRevPart(P,s.t)?'Completed part '+lastRevPart(P,s.t):'Done'):'Part '+P.partNo+' of '+P.nParts+(P.owed.length>1?' · '+P.owed.length+' parts due (catching up)':' · pages '+range(P.portion))):'Pages arrive after '+P.tgt+' connection recitations',s.rDone?'done':'todo',s.rNeed&&!s.rDone?s.rChk/Math.max(1,P.portion.length):1,s.rDone?chipFor('done',s.rNeed?'Done':'—'):chipFor(s.rChk?'prog':'',s.rChk+'/'+P.portion.length+(P.owed.length>1?' · '+P.owed.length+' due':'')))}
   </div>`;
-  const wn=Object.keys(S.wk).length;if(wn)h+=`<button class="task" data-act="goWeak" style="border:1px solid var(--line);border-radius:var(--r);background:var(--surface)"><span class="tick part">!</span><span><span class="t">Weak pages</span><span class="s" style="display:block">${wn} page${wn>1?'s':''} · review whenever you have time</span></span>${chipFor('',wn)}</button>`;
+  const wn=Object.keys(S.wk).length;if(wn)h+=`<button class="task" data-act="goWeak" style="border:1px solid var(--line);border-radius:var(--r);background:var(--surface)"><span class="tick part">!</span><span><span class="t">Weak pages</span><span class="s" style="display:block">${(()=>{const c=[0,0,0,0];Object.values(S.wk).forEach(w=>c[wkLevel(w)]++);return [3,2,1].filter(l=>c[l]).map(l=>c[l]+' '+WK_NAMES[l].toLowerCase()).join(' · ')})()} · any time</span></span>${chipFor('',wn)}</button>`;
   if(s.allDone)h+=`<div class="card" style="text-align:center"><h2>Everything for today is done</h2><p class="muted small" style="margin:6px 0 0">Recite at a steady, audible pace (hadr). See you tomorrow, in sha Allah.</p></div>`;
   return h;
 }
@@ -303,8 +304,10 @@ function workBlock(w,st){
   const ready=w.pages.length&&w.pages.every(pageReady);const what=w.lines?`${linesTxt(w.lines)} of p. ${w.pages[0]}`:'page '+range(w.pages);
   return h+`<button class="btn pri block" data-act="complete" ${ready?'':'disabled'}>${ready?`Mark ${what} as memorized${w.ahead?' for '+esc(dayName(w.date)):''}`:'Finish the required steps to complete'}</button>`;
 }
-function flagMenu(p){if(ui.menu===p)return `<button class="flag ${S.weak[p]?'on':''}" data-act="weak" data-p="${p}">${S.weak[p]?'Remove weak flag':'Flag as weak'}</button>`;return `${S.weak[p]?'<span class="chip prog">Weak</span>':''}<button class="mini" data-act="menu" data-p="${p}" aria-label="More options for page ${p}">⋯</button>`}
-function weakBtn(p){return `<span class="rowend">${flagMenu(p)}</span>`}
+function flagChoices(p){const cur=S.wk[p]?wkLevel(S.wk[p]):0;return [1,2,3].map(l=>`<button class="flag ${cur===l?'on':''}" data-act="weakSet" data-p="${p}" data-l="${l}">${WK_NAMES[l]}</button>`).join('')+(cur?`<button class="flag" data-act="weakSet" data-p="${p}" data-l="0">Remove</button>`:'')}
+function menuRow(ps){const p=ps.find(q=>ui.menu===q);return p?`<div class="wkmenu">${flagChoices(p)}</div>`:''}
+function flagMenu(p){return `${S.wk[p]?wkTag(wkLevel(S.wk[p])):''}<button class="mini" data-act="menu" data-p="${p}" aria-label="Mark page ${p} as weak">⋯</button>`}
+function weakBtn(p){return `<span class="rowend">${flagMenu(p)}</span>${menuRow([p])}`}
 function pageCard(p,st,ln){
   const x=pst(p);const next=p<TOTAL?p+1:null;
   const wt=workTarget();const wi=wt.pages.indexOf(p);const it=itemOf(p,wt.keys&&wi>=0?wt.keys[wi]:null);const blk=it?surahItems(it.ss[0]):[];
@@ -322,7 +325,7 @@ function pageCard(p,st,ln){
     if(z.id==='listen'){title=`Listen to a reciter ${c}×`;note=`Follow along in the mushaf to protect against mistakes. <a href="https://quran.com/page/${p}" target="_blank" rel="noopener">Open page ${p} on Quran.com</a>`}
     else if(z.id==='tafsir'){title='Read the tafsir';note='Al-Mukhtasar fi al-Tafsir (English) or Tafsir al-Muyassar (Arabic), any time today.'}
     else if(z.id==='memo'){
-      if(ln&&ln[1]<15){title=`Memorize ${linesTxt(ln)} of p. ${p}`;note=`Watch where each verse stops and starts. Carry on a little into line ${ln[1]+1} so the parts join.`}
+      if(ln&&ln[1]<PL(p)){title=`Memorize ${linesTxt(ln)} of p. ${p}`;note=`Watch where each verse stops and starts. Carry on a little into line ${ln[1]+1} so the parts join.`}
       else{const pre=ln&&ln[0]>1?`Memorize ${linesTxt(ln)} of p. ${p}`:'Memorize the page';
         title=endOfSurah?`${pre} · end of Surah ${esc(it.s)}`:`${pre}${next?' + first line of p. '+next:''}`;
         note=(ln&&ln[0]>1?'Recite it joined to the lines before. ':'')+(endOfSurah?`Watch where each verse stops and starts. This completes the surah${(()=>{const later=it&&(ITEMS_BY_PAGE[p]||[]).find(x=>x.i<it.i);if(later)return `. ${esc(surahName(later.ss[later.ss.length-1]))} begins right after on this page${memItems().has(later.k)?', and you’ve already memorized it, so joining into it is optional':''}`;return nextDone?`. Page ${next} starts ${esc(surahName(onPage(next)[0]))}, which you’ve already memorized, so joining its first line is optional`:''})()}.`:'Watch where each verse stops and starts. Don’t stop at the last verse; join it to the next page.')}}
@@ -350,11 +353,12 @@ function vConnection(){
   const s=status(),P=s.P,st=s.st,lg=s.lg,t=s.t;
   let h=`<h2 style="font-size:22px">Connection</h2><p class="muted" style="margin:-6px 0 0">After its day of ${st.yreps} repetitions, each page comes here. Recite it once a day from memory; after ${P.tgt} recitations it moves to revision. Missed days don’t count.</p>`;
   h+=`<div class="stats"><div class="stat"><b class="num">${P.conn.length}</b><span>in connection</span></div><div class="stat"><b class="num">${s.cDone}/${P.conn.length}</b><span>done today</span></div><div class="stat"><b class="num">${P.graduating}</b><span>move to revision tomorrow</span></div></div>`;
-  if(s.cMiss.length)h+=`<section class="card"><div class="card-h"><div><div class="label">Catching up · ${s.cOwed} missed</div><h2>Missed recitations</h2></div></div><p class="small muted" style="margin:-4px 0 8px">These were due on days you didn’t do connection. Recite each once per missed day, as well as today’s.</p><div class="list">${s.cMiss.map(x=>`<div class="li"><button class="cb" data-act="connMiss" data-n="${x.l.n}" aria-label="Log one missed recitation">✓</button><div class="m"><b>Page ${connLabel(x.l)}</b><div>${x.days.length} missed · <span class="num">${Math.min(P.tgt,S.cc[x.l.n]||0)}/${P.tgt}</span></div></div><span></span></div>`).join('')}</div></section>`;
+  const missOf={};s.cMiss.forEach(x=>missOf[x.l.n]=x.days.length);
+  if(s.cOwed)h+=`<div class="card" style="border-color:var(--gold);background:var(--gold-soft)"><b>${s.cOwed} missed recitation${s.cOwed>1?'s':''}</b><div class="small" style="color:var(--ink)">Pages marked “+ missed” were due on days you didn’t do connection. Tap that button once per missed day, as well as today’s tick.</div></div>`;
   if(!P.conn.length){h+=`<div class="empty">${P.yl?'Only yesterday’s page so far — it’s handled in Yesterday’s repetition. Tomorrow it joins Connection.':'Connection starts once you’ve memorized a couple of pages.'}</div>`;return h}
   const sorted=P.conn.slice().sort((a,b)=>Math.min(...a.pages)-Math.min(...b.pages));
   const groups=[];sorted.forEach(l=>{const sn=ownerSurah(Math.min(...l.pages),l.keys&&l.keys[0]);const g=groups[groups.length-1];if(g&&g.s===sn)g.ls.push(l);else groups.push({s:sn,ls:[l]})});
-  const row=l=>{const on=!!lg.conn[l.n];return `<div class="li"><button class="cb ${on?'on':''}" data-act="conn" data-n="${l.n}" aria-label="Mark page ${range(l.pages)} recited">✓</button><div class="m"><b>Page ${connLabel(l)}</b><div><span class="num">${Math.min(P.tgt,ccBefore(l.n,lg)+(on?1:0))}/${P.tgt}</span> · ${l.virtual?'Memorized before':'Lesson '+l.n}${l.virtual?'':' · '+fmt(fromKey(l.date),{month:'short',day:'numeric'})}</div></div><span class="rowend">${l.pages.map(flagMenu).join('')}</span></div>`};
+  const row=l=>{const on=!!lg.conn[l.n];return `<div class="li"><button class="cb ${on?'on':''}" data-act="conn" data-n="${l.n}" aria-label="Mark page ${range(l.pages)} recited">✓</button><div class="m"><b>Page ${connLabel(l)}</b><div><span class="num">${Math.min(P.tgt,ccBefore(l.n,lg)+(on?1:0))}/${P.tgt}</span> · ${l.virtual?'Memorized before':'Lesson '+l.n}${l.virtual?'':' · '+fmt(fromKey(l.date),{month:'short',day:'numeric'})}</div></div><span class="rowend">${missOf[l.n]?`<button class="flag on" data-act="connMiss" data-n="${l.n}">+${missOf[l.n]} missed</button>`:''}${l.pages.map(flagMenu).join('')}</span>${menuRow(l.pages)}</div>`};
   h+=`<section class="card"><div class="card-h"><div><h2>Today’s connection</h2><div class="small muted">Grouped by surah, in reading order</div></div><button class="btn" data-act="connAll">${s.cDone===s.cTotal?'Clear all':'Mark all done'}</button></div>${groups.map(g=>{const pg=[].concat(...g.ls.map(l=>l.pages));const dn=g.ls.filter(l=>lg.conn[l.n]).length;const label=g.s;return `<div class="grp"><div class="grp-h"><b>${esc(label)}</b><span class="num">${[...new Set(pg)].length>1?'pp. ':'p. '}${range([...new Set(pg)])} · ${dn}/${g.ls.length}</span></div><div class="list">${g.ls.map(row).join('')}</div></div>`}).join('')}</section>`;
   if(s.cDone===s.cTotal&&!overdue(s)){
     let ad=null,AP=null;const d0=fromKey(t);for(let k=0;k<14;k++){d0.setDate(d0.getDate()+1);const key=dk(d0),pp=plan(key),lg2=S.logs[key]||{conn:{}};if(pp.conn.length&&!pp.conn.every(l=>lg2.conn&&lg2.conn[l.n])){ad=key;AP=pp;break}}
@@ -368,13 +372,17 @@ function vConnection(){
   return h;
 }
 function daysAgo(k){if(!k)return'never';const d=Math.round((fromKey(TODAY())-fromKey(k))/864e5);return d<=0?'today':d===1?'yesterday':d+' days ago'}
-function weakList(){return Object.keys(S.wk).map(Number).map(p=>({p,...S.wk[p]})).sort((a,b)=>((a.last||'')<(b.last||'')?-1:(a.last||'')>(b.last||'')?1:0)||(a.p-b.p))}
+const WK_NAMES=['','Shaky','Weak','Very weak'];
+function wkLevel(w){return w&&w.level>=1&&w.level<=3?w.level:2}
+function wkNeed(l){const st=S.settings;return Math.max(1,(l===1?st.weakL1:l===3?st.weakL3:st.weakL2)|0)}
+function wkTag(l){return `<span class="wtag w${l}">${WK_NAMES[l]}</span>`}
+function weakList(){return Object.keys(S.wk).map(Number).map(p=>({p,...S.wk[p],level:wkLevel(S.wk[p])})).sort((a,b)=>(b.level-a.level)||((a.last||'')<(b.last||'')?-1:(a.last||'')>(b.last||'')?1:0)||(a.p-b.p))}
 function vWeak(){
-  const need=Math.max(1,S.settings.weakClear|0),t=TODAY(),list=weakList();
+  const list=weakList();
   let h=`<section class="card" id="weak"><div class="card-h"><div><div class="label">Any time · no schedule</div><h2>Weak pages</h2></div><span class="small muted num">${list.length}</span></div>`;
-  if(!list.length)return h+`<div class="empty">Flag a shaky page from Connection, Revision or Yesterday’s repetition. It comes off after ${need} clean recitations.</div></section>`;
-  h+=`<p class="small muted" style="margin:-4px 0 6px">Recite it from memory and tap Clean after each clean recitation. ${need} clean recitations and it comes off the list.</p><div class="list">${list.map(w=>{const p=w.p,c=Math.min(w.clean||0,need);
-    return `<div class="li wkrow"><div class="m"><b>Page ${p}</b><div>${esc(surahOf(p))} ${need<=7?`<span class="wkdots" aria-label="${c} of ${need} clean recitations">${Array.from({length:need},(_,i)=>`<i class="${i<c?'on':''}"></i>`).join('')}</span>`:`<span class="wkbar" aria-hidden="true"><b style="width:${Math.round(c/need*100)}%"></b></span><span class="num">${c}/${need}</span>`}</div></div><div class="wkb"><button class="btn pri" data-act="wkClean" data-p="${p}">Clean</button><button class="btn" data-act="wkUndo" data-p="${p}" ${(w.clean||0)>0?'':'disabled'}>Undo</button></div></div>`}).join('')}</div>`;
+  if(!list.length)return h+`<div class="empty">Use the ⋯ button on any page in Connection, Revision or Yesterday’s repetition to mark it Shaky, Weak or Very weak.</div></section>`;
+  h+=`<p class="small muted" style="margin:-4px 0 6px">Tap Clean after each clean recitation from memory. ${S.settings.weakStep?'When a page reaches its count it drops a level, then comes off the list.':'When a page reaches its count it comes off the list.'}</p><div class="list">${list.map(w=>{const p=w.p,need=wkNeed(w.level),c=Math.min(w.clean||0,need);
+    return `<div class="li wkrow"><div class="m"><b>Page ${p}</b> ${wkTag(w.level)}<div>${esc(surahOf(p))} <span class="wkbar" aria-hidden="true"><b style="width:${Math.round(c/need*100)}%"></b></span><span class="num">${c}/${need}</span></div></div><div class="wkb"><button class="btn pri" data-act="wkClean" data-p="${p}">Clean</button><button class="btn" data-act="wkUndo" data-p="${p}" ${(w.clean||0)>0||w.prevLevel?'':'disabled'}>Undo</button><button class="mini" data-act="menu" data-p="${p}" aria-label="Change level">⋯</button></div>${ui.menu===p?`<div class="wkmenu">${flagChoices(p)}</div>`:''}</div>`}).join('')}</div>`;
   return h+'</section>';
 }
 function dayName(k){const tm=fromKey(TODAY());tm.setDate(tm.getDate()+1);return k===dk(tm)?'tomorrow':fmt(fromKey(k),{weekday:'long'})}
@@ -384,7 +392,7 @@ function vRevision(){
   let h=`<h2 style="font-size:22px">Revision</h2><p class="muted" style="margin:-6px 0 0">Pages that have finished connection, recited from memory in mushaf order. You get through all of them about every ${P.cyc} days.</p>`;
   if(!P.old.length){h+=`<div class="empty">No old memorization yet. Pages move here after ${P.tgt} days of connection. If you memorized pages before starting, add them in Settings.</div>`;return h+vWeak()}
   const top=S.revStack[S.revStack.length-1];const canUndo=top&&(top.date>=t||top.doneOn===t);
-  const row=(p,on,act,dis)=>`<div class="li"><button class="cb ${on?'on':''}" data-act="${act}" data-p="${p}" ${dis?'disabled':''} aria-label="Mark page ${p} recited">✓</button><div class="m"><b>Page ${p}</b><div>${esc(pageMeta(p))}</div></div><span class="rowend">${flagMenu(p)}</span></div>`;
+  const row=(p,on,act,dis)=>`<div class="li"><button class="cb ${on?'on':''}" data-act="${act}" data-p="${p}" ${dis?'disabled':''} aria-label="Mark page ${p} recited">✓</button><div class="m"><b>Page ${p}</b><div>${esc(pageMeta(p))}</div></div><span class="rowend">${flagMenu(p)}</span>${menuRow([p])}</div>`;
   if(s.rDone){const ex=S.revExtra[t]||[];const lastEx=ex.length?ex[ex.length-1]:null;const lp=lastEx?(lastEx.pages||lastEx):(S.revLog[t]||[]);
     h+=`<section class="card"><div class="card-h"><div><div class="label">Revision</div><h2>Completed part ${lastRevPart(P,t)||''}</h2><div class="small muted">Pages ${range(lp)}</div></div>${chipFor('done','Done')}</div>`;
   }else{
@@ -409,11 +417,11 @@ function vProgress(){
   const conn=new Set();P.conn.forEach(l=>l.pages.forEach(p=>conn.add(p)));
   const fresh=new Set([...(P.yl?P.yl.pages:[]),...(tp.done?tp.pages:[])]);
   let rows='';
-  for(let j=0;j<30;j++){const a=JUZ[j],b=j<29?JUZ[j+1]-1:TOTAL;let c='';for(let p=a;p<=b;p++){const cls=fresh.has(p)?'new':conn.has(p)?'conn':mem.has(p)?'rev':'';c+=`<span class="cell ${cls} ${S.weak[p]?'weak':''}" title="p. ${p} · ${esc(surahOf(p))}"></span>`}rows+=`<div class="juz"><span class="jl num">Juz ${j+1}</span><div class="cells">${c}</div></div>`}
+  for(let j=0;j<30;j++){const a=JUZ[j],b=j<29?JUZ[j+1]-1:TOTAL;let c='';for(let p=a;p<=b;p++){const cls=fresh.has(p)?'new':conn.has(p)?'conn':mem.has(p)?'rev':'';c+=`<span class="cell ${cls} ${S.wk[p]?'weak w'+wkLevel(S.wk[p]):''}" title="p. ${p} · ${esc(surahOf(p))}"></span>`}rows+=`<div class="juz"><span class="jl num">Juz ${j+1}</span><div class="cells">${c}</div></div>`}
   let h=`<h2 style="font-size:22px">Progress</h2><div class="stats"><div class="stat"><b class="num">${mem.size}</b><span>of ${TOTAL} pages</span></div><div class="stat"><b class="num">${streak()}</b><span>day streak</span></div><div class="stat"><b>${projection()}</b><span>projected finish</span></div></div>`;
-  h+=`<section class="card"><div class="card-h"><h2>The mushaf</h2><span class="small muted">one square per page</span></div><div style="overflow-x:auto">${rows}</div><div class="legend"><span><i style="background:var(--c-new)"></i>Today / yesterday</span><span><i style="background:var(--c-conn)"></i>Connection</span><span><i style="background:var(--c-rev)"></i>Revision</span><span><i style="background:var(--c-none)"></i>Not yet</span><span><i style="background:var(--c-none);outline:2px solid var(--danger);outline-offset:-1px"></i>Weak</span></div></section>`;
+  h+=`<section class="card"><div class="card-h"><h2>The mushaf</h2><span class="small muted">one square per page</span></div><div style="overflow-x:auto">${rows}</div><div class="legend"><span><i style="background:var(--c-new)"></i>Today / yesterday</span><span><i style="background:var(--c-conn)"></i>Connection</span><span><i style="background:var(--c-rev)"></i>Revision</span><span><i style="background:var(--c-none)"></i>Not yet</span><span><i class="cell weak w3" style="display:inline-block"></i>Weak (outline color = level)</span></div></section>`;
   const wl=weakList();
-  h+=`<section class="card"><div class="card-h"><h2>Weak pages</h2><button class="btn" data-act="goWeak">Open</button></div><p class="small muted" style="margin:0">${wl.length?`${wl.length} page${wl.length>1?'s':''} flagged`:'None flagged'}</p></section>`;
+  h+=`<section class="card"><div class="card-h"><h2>Weak pages</h2><button class="btn" data-act="goWeak">Open</button></div><p class="small muted" style="margin:0">${wl.length?[3,2,1].map(l=>{const n=wl.filter(w=>w.level===l).length;return n?n+' '+WK_NAMES[l].toLowerCase():''}).filter(Boolean).join(' · '):'None flagged'}</p></section>`;
   const recent=S.lessons.slice(-10).reverse();
   h+=`<section class="card"><div class="card-h"><h2>Recent lessons</h2>${S.lessons.length?`<button class="btn" data-act="undoLesson">Undo last lesson</button>`:''}</div>${ui.confirmUndo?`<div class="confirm">Remove lesson ${S.lessons[S.lessons.length-1].n} (page ${lessonLabel(S.lessons[S.lessons.length-1])})? Its page becomes today’s page again.<div class="row"><button class="btn warn" data-act="undoYes">Remove lesson</button><button class="btn" data-act="undoNo">Keep it</button></div></div>`:''}${recent.length?`<div class="list">${recent.map(l=>`<div class="li"><span class="chip num">#${l.n}</span><div class="m"><b>Page ${connLabel(l)}</b><div>${esc(pageMeta(l.pages[0]))}</div></div><span class="small muted">${fmt(fromKey(l.date),{month:'short',day:'numeric'})}</span></div>`).join('')}</div>`:'<div class="empty">Lessons you complete appear here.</div>'}</section>`;
   return h;
@@ -449,7 +457,10 @@ function vSettings(){
    ${num('yreps','Yesterday’s repetitions','Times from memory, the day after',1,50)}
    ${num('connTarget','Connection recitations','Days a page is recited before revision',1,60)}
    ${num('cycle','Revision cycle','Days to get through all old pages',1,60)}
-   ${num('weakClear','Weak page recovery','Clean recitations to come off the list',1,60)}
+   ${num('weakL1','Shaky pages','Clean recitations to clear',1,200)}
+   ${num('weakL2','Weak pages','Clean recitations to clear',1,200)}
+   ${num('weakL3','Very weak pages','Clean recitations to clear',1,200)}
+   <div class="field"><div class="fl"><b>Step down a level</b><span>A cleared Very weak page becomes Weak, then Shaky, then comes off</span></div><button class="sw ${st.weakStep?'on':''}" data-act="weakStepTog" aria-pressed="${!!st.weakStep}" aria-label="Step down a level"></button></div>
   </section>`;
   h+=`<section class="card"><div class="card-h"><h2>Backup</h2></div>
    <p class="small muted" style="margin:0 0 8px">Save your progress to a file, or restore it here or on another device.</p>
@@ -498,7 +509,7 @@ function buzz(){try{navigator.vibrate&&navigator.vibrate(12)}catch(e){}}
 function act(a,d){
   const t=TODAY(),st=S.settings,p=d.p?+d.p:null;let changed=true;
   switch(a){
-    case 'tab':ui.tab=d.v;ui.aheadMem=ui.aheadConn=ui.ahead=false;ui.confirmReset=ui.confirmUndo=false;ui.msg='';ui.pendingImport=null;changed=false;render();window.scrollTo(0,0);return;
+    case 'tab':ui.tab=d.v;ui.menu=null;ui.aheadMem=ui.aheadConn=ui.ahead=false;ui.confirmReset=ui.confirmUndo=false;ui.msg='';ui.pendingImport=null;changed=false;render();window.scrollTo(0,0);return;
     case 'noop':return;
     case 'openStep':ui.openStep[p]=+d.i;render();return;
     case 'dayPpd':{const wd=workTarget().date,lg=log(wd),v=normAmt(d.v),b=workTarget(),p0=b.pages[0],k0=p0?pkey(p0):null;if(v===st.ppd)delete lg.ppd;else lg.ppd=v;const a2=workTarget();if(p0&&a2.pages[0]===p0){const k1=pkey(p0);if(k1!==k0&&S.pp[k0]&&!S.pp[k1]){S.pp[k1]=S.pp[k0];delete S.pp[k0]}}ui.openStep={};break}
@@ -533,10 +544,11 @@ function act(a,d){
     case 'conn':{const lg=log();const n=d.n;if(lg.conn[n]){delete lg.conn[n];S.cc[n]=Math.max(0,(S.cc[n]||0)-1)}else{lg.conn[n]=1;S.cc[n]=(S.cc[n]||0)+1}break}
     case 'connAll':{const lg=log(),P=plan();const all=P.conn.every(l=>lg.conn[l.n]);P.conn.forEach(l=>{const n=l.n;if(all){if(lg.conn[n]){delete lg.conn[n];S.cc[n]=Math.max(0,(S.cc[n]||0)-1)}}else if(!lg.conn[n]){lg.conn[n]=1;S.cc[n]=(S.cc[n]||0)+1}});break}
     case 'menu':ui.menu=ui.menu===+d.p?null:+d.p;render();return;
-    case 'weak':ui.menu=null;if(S.wk[p]){delete S.wk[p];delete S.weak[p]}else{S.wk[p]={since:t,reviews:0,clean:0,mistakes:0,last:null,note:''};S.weak[p]=1}break;
-    case 'wkClean':{const w=S.wk[p];if(!w)return;w.prev={clean:w.clean||0,mistakes:w.mistakes||0};w.clean=(w.clean||0)+1;w.last=t;w.reviews=(w.reviews||0)+1;buzz();
-      if(w.clean>=Math.max(1,st.weakClear|0)){S.recovered.push({p,since:w.since,cleared:t,reviews:w.reviews});delete S.wk[p];delete S.weak[p]}break}
-    case 'wkUndo':{const w=S.wk[p];if(!w||!(w.clean>0))return;w.clean--;delete w.prev;break}
+    case 'weakSet':{ui.menu=null;const l=+d.l;if(!l){delete S.wk[p];delete S.weak[p]}else{if(!S.wk[p])S.wk[p]={since:t,reviews:0,clean:0,last:null};if(S.wk[p].level!==l){S.wk[p].level=l;S.wk[p].clean=0;delete S.wk[p].prevLevel}S.weak[p]=1}break}
+    case 'weak':ui.menu=null;if(S.wk[p]){delete S.wk[p];delete S.weak[p]}else{S.wk[p]={since:t,reviews:0,clean:0,last:null,level:2};S.weak[p]=1}break;
+    case 'wkClean':{const w=S.wk[p];if(!w)return;const lv=wkLevel(w);w.clean=(w.clean||0)+1;w.last=t;w.reviews=(w.reviews||0)+1;buzz();delete w.prevLevel;
+      if(w.clean>=wkNeed(lv)){if(st.weakStep&&lv>1){w.prevLevel={level:lv,clean:w.clean};w.level=lv-1;w.clean=0}else{S.recovered.push({p,since:w.since,cleared:t,reviews:w.reviews});delete S.wk[p];delete S.weak[p]}}break}
+    case 'wkUndo':{const w=S.wk[p];if(!w)return;if(w.prevLevel&&!(w.clean>0)){w.level=w.prevLevel.level;w.clean=w.prevLevel.clean-1;delete w.prevLevel;break}if(!(w.clean>0))return;w.clean--;break}
     case 'goWeak':ui.tab='revision';render();setTimeout(()=>{const el=document.getElementById('weak');if(el)el.scrollIntoView({behavior:'smooth',block:'start'})},30);return;
     case 'revAll':{const P=plan();const all=P.portion.every(q=>S.revTicks[q]);P.portion.forEach(q=>{if(all)delete S.revTicks[q];else S.revTicks[q]=1});break}
     case 'revChk':{if(S.revTicks[p])delete S.revTicks[p];else S.revTicks[p]=1;break}
@@ -556,6 +568,7 @@ function act(a,d){
       (top.ticks||[]).forEach(q=>S.revTicks[q]=1);ui.ahead=false;break}
     case 'restDay':{const i=+d.i;st.rest=st.rest.includes(i)?st.rest.filter(x=>x!==i):[...st.rest,i].sort();break}
     case 'checkData':{const n=repairLessons(S);ui.msg=n?`Fixed ${n} problem${n>1?'s':''} in your lessons.`:'No problems found.';break}
+    case 'weakStepTog':st.weakStep=!st.weakStep;break;
     case 'defaults':{const keep={priorConn:st.priorConn,priorTo:st.priorTo,priorPart:st.priorPart,ppd:st.ppd,prior:st.prior,rest:st.rest};S.settings={...DEF,...keep,steps:STEP_DEF.map(q=>({...q}))};break}
     case 'undoLesson':ui.confirmUndo=true;changed=false;break;
     case 'undoNo':ui.confirmUndo=false;changed=false;break;
@@ -590,7 +603,7 @@ document.addEventListener('change',e=>{
   if(k==='prior')st.prior=el.value.trim();
   else if(k==='order')st.order=['surah','forward','backward'].includes(el.value)?el.value:'surah';
   else{if(k==='priorTo')st.priorPart=0;
-  const lim={dayStart:[0,6],joinReps:[0,200],weakClear:[1,60],priorConn:[0,604],priorTo:[0,114],priorPart:[0,300],ppd:[1,5],listen:[1,10],rec:[1,10],reps:[1,200],yreps:[1,50],connTarget:[1,60],cycle:[1,60]}[k];let v=parseInt(el.value,10);if(isNaN(v))v=DEF[k];v=Math.max(lim[0],Math.min(lim[1],v));if(k==='priorConn')v=Math.min(v,priorSet().size);st[k]=v}
+  const lim={dayStart:[0,6],joinReps:[0,200],weakClear:[1,60],weakL1:[1,200],weakL2:[1,200],weakL3:[1,200],priorConn:[0,604],priorTo:[0,114],priorPart:[0,300],ppd:[1,5],listen:[1,10],rec:[1,10],reps:[1,200],yreps:[1,50],connTarget:[1,60],cycle:[1,60]}[k];let v=parseInt(el.value,10);if(isNaN(v))v=DEF[k];v=Math.max(lim[0],Math.min(lim[1],v));if(k==='priorConn')v=Math.min(v,priorSet().size);st[k]=v}
   refreshDone();save();render();
 });
 const TABS=['today','memorize','connection','revision','progress'];
