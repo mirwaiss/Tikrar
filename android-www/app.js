@@ -45,6 +45,7 @@ const LS='tikrar-tracker-v1';
 const CLIENT=Math.random().toString(36).slice(2);
 function fresh(){return{v:1,setup:false,settings:{...DEF},lessons:[],logs:{},done:{},revCursor:0,weak:{},miss:{},cc:{},pp:{},wk:{},wkNo:{},recovered:[],revLog:{},revStack:[],revExtra:{},revNum:{},revTicks:{},round:null,updated:0}}
 function normalize(o){const f=fresh();if(!o||typeof o!=='object')return f;const s={...f,...o};s.settings={...DEF,...(o.settings||{})};if(o.settings&&!o.settings.order)s.settings.order=o.settings.dir===-1?'backward':'forward';['logs','done','weak','miss','cc','pp','wk','wkNo','revExtra','revNum','revTicks'].forEach(k=>{if(!s[k]||typeof s[k]!=='object')s[k]={}});if(!Array.isArray(s.lessons))s.lessons=[];s.lessons.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.n-b.n));if(!s.fixLines){s.fixLines=1;const ends={};s.lessons.forEach(l=>{if(!l.lines)return;const key=(l.keys&&l.keys[0])||String(l.pages[0]);const prev=ends[key]||0;if(l.lines[0]<=prev&&prev<15){const len=l.lines[1]-l.lines[0];const a=prev+1;l.lines=[a,Math.min(15,a+len)];s.updated=Date.now()}ends[key]=Math.max(prev,l.lines[1])})}
+  if(!s.fixYq){s.fixYq=1;const lim=fromKey(dk());lim.setDate(lim.getDate()-7);const lk=dk(lim);s.lessons.forEach(l=>{if(!l.yDate&&l.date<lk)l.yDate=l.date});const tg=s.logs[dk()];if(tg&&tg.y){const pr=s.lessons.filter(l=>l.date<dk()&&!l.yDate);if(pr.length){tg.yc=tg.yc||{};tg.yc[pr[pr.length-1].n]=tg.y}}}
   if(!s.fixDup){s.fixDup=1;const seen={};s.lessons=s.lessons.filter(l=>{const k=((l.keys&&l.keys[0])||l.pages.join(','))+'@'+(l.lines?l.lines.join('-'):'all');if(seen[k]&&!l.yDate){s.updated=Date.now();return false}seen[k]=1;return true})}
   if(!s.fix3am&&s.lessons.length){s.fix3am=1;const last=s.lessons[s.lessons.length-1];const td=dk();if(last&&!last.at&&last.date===td){const y=fromKey(td);y.setDate(y.getDate()-1);const yk=dk(y);if(!s.lessons.some(l=>l.date===yk)){last.date=yk;s.updated=Date.now()}}}else if(!s.fix3am)s.fix3am=1;s.lessons.forEach(l=>{if(l.half){l.lines=l.half===1?[1,8]:[9,15];delete l.half}});Object.keys(s.pp||{}).forEach(k=>{const m=k.match(/^(\d+)h([12])$/);if(m){s.pp[m[1]+'L'+(m[2]==='1'?1:9)]=s.pp[k];delete s.pp[k]}});Object.values(s.logs||{}).forEach(g=>{if(g&&g.ppd!=null)g.ppd=normAmt(g.ppd)});if(!s.revLog||typeof s.revLog!=='object')s.revLog={};if(!s.revExtra||typeof s.revExtra!=='object')s.revExtra={};{const td=dk();Object.keys(s.revLog).filter(k=>k>td).sort().forEach(k=>{(s.revExtra[td]=s.revExtra[td]||[]).push(s.revLog[k]);delete s.revLog[k]});(s.revStack||[]).forEach(e=>{if(e.date>td){e.date=td;e.extra=true}})}if(!Array.isArray(s.revStack))s.revStack=[];{const tg=s.logs&&s.logs[dk()];if(tg&&tg.revDone&&tg.revPortion&&!s.revLog[dk()]){s.revLog[dk()]=tg.revPortion;s.revStack.push({date:dk(),prev:tg.revPrev||0})}}if(!Array.isArray(s.recovered))s.recovered=[];if(!o.wk20){s.settings.weakClear=20;s.wk20=1}Object.keys(s.weak).forEach(k=>{if(s.weak[k]&&!s.wk[k])s.wk[k]={since:dk(),reviews:0,clean:0,mistakes:0,last:null,note:''}});s.weak={};Object.keys(s.wk).forEach(k=>s.weak[k]=1);if(!o.pp){const tl=s.logs[dk()];if(tl&&tl.pages)Object.keys(tl.pages).forEach(k=>{s.pp[k]=tl.pages[k]})}s.settings.order='surah';s.settings.startPage=TOTAL;if(!Array.isArray(s.settings.rest))s.settings.rest=[];if(!Array.isArray(s.settings.steps))s.settings.steps=STEP_DEF.map(x=>({...x}));s.settings.steps=s.settings.steps.filter(x=>x&&x.id&&(STEP_NAMES[x.id]||x.custom));STEP_DEF.forEach(d=>{if(!s.settings.steps.some(x=>x.id===d.id))s.settings.steps.push({...d,on:false})});s.settings.steps.forEach(z=>{if(!(z.count>=1))z.count=z.id==='listen'?(o.settings&&o.settings.listen)||3:z.id==='rec'?(o.settings&&o.settings.rec)||3:z.id==='reps'?(o.settings&&o.settings.reps)||40:1});s.settings.ppd=normAmt(s.settings.ppd);return s}
 let S=fresh();
@@ -113,7 +114,6 @@ function appStart(){let m=null;S.lessons.forEach(l=>{if(!m||l.date<m)m=l.date});
 function connMissed(l,t){const tgt=Math.max(1,S.settings.connTarget|0);const lgT=S.logs[t]||{conn:{}};
   const left=tgt-(S.cc[l.n]||0)-((lgT.conn&&lgT.conn[l.n])?0:1);if(left<=0)return[];
   let from;if(l.virtual)from=appStart();else{const yd=l.yDate||(()=>{const d=fromKey(l.date);d.setDate(d.getDate()+1);return dk(d)})();const d=fromKey(yd);d.setDate(d.getDate()+1);from=dk(d)}
-  const lim=fromKey(t);lim.setDate(lim.getDate()-7);if(dk(lim)>from)from=dk(lim);
   const out=[];const d=fromKey(from);while(dk(d)<t){const k=dk(d),g=S.logs[k];if(!(g&&g.conn&&g.conn[l.n]))out.push(k);d.setDate(d.getDate()+1)}
   return out.slice(0,left)}
 function completesPage(l){return !!(l.lines&&l.lines[0]>1&&l.lines[1]>=15)}
@@ -125,9 +125,10 @@ function plan(t=TODAY()){
   const prior=S.lessons.filter(l=>l.date<t);const D=prior.length;
   const virt=recentPrior().map(p=>({n:'v'+p,pages:[p],date:'',virtual:true}));
   const all=virt.concat(prior);
-  const last=prior[D-1];
-  const yl=last&&(!last.yDate||last.yDate===t)?last:null;
-  const conn=all.filter(l=>l!==yl&&!supersededPart(l)&&ccBefore(l.n,lg)<tgt).reverse();
+  const yQueue=prior.filter(l=>!l.yDate);
+  const yDoneToday=prior.filter(l=>l.yDate===t);
+  const yl=yQueue[0]||yDoneToday[yDoneToday.length-1]||null;
+  const conn=all.filter(l=>l!==yl&&!(!l.virtual&&!l.yDate)&&!supersededPart(l)&&ccBefore(l.n,lg)<tgt).reverse();
   const vset=new Set(virt.map(l=>l.pages[0]));
   const old=[...priorSet()].filter(p=>!vset.has(p));all.forEach(l=>{if(l!==yl&&ccBefore(l.n,lg)>=tgt)old.push(...l.pages)});
   const oldU=[...new Set(old)].sort((a,b)=>a-b);
@@ -137,15 +138,14 @@ function plan(t=TODAY()){
   const live=S.round&&S.round.done<S.round.parts.length?S.round:null;
   const R=live||(oldU.length?{pages:oldU.slice(),parts:chunk(oldU),done:0,fresh:true}:{pages:[],parts:[],done:0,fresh:true});
   const nParts=R.parts.length||1;
-  const keys=Object.keys(S.revLog).sort();const start0=keys[0]||t;const lim=fromKey(t);lim.setDate(lim.getDate()-6);
-  const start=start0>dk(lim)?start0:dk(lim);const owed=[];
+  const keys=Object.keys(S.revLog).sort();const start=keys[0]||t;const owed=[];
   if(oldU.length){const d=fromKey(start);while(dk(d)<=t){const k2=dk(d);if(!S.revLog[k2])owed.push(k2);d.setDate(d.getDate()+1)}}
   const rDone=oldU.length>0&&owed.length===0;
   const portion=R.parts[R.done]||[];const partNo=Math.min(R.done+1,nParts);
   const ahead=rDone?portion:[];
   const roundDone=R.parts.slice(0,R.done).reduce((a,c)=>a+c.length,0);
   const graduating=conn.filter(l=>ccBefore(l.n,lg)+(lg.conn&&lg.conn[l.n]?1:0)>=tgt).length;
-  return{D,tgt,yl,conn,old:oldU,cyc,R,nParts,partNo,portion,owed,rDone,ahead,roundDone,roundPages:R.pages.length,partsLeft:nParts-R.done,graduating};
+  return{D,tgt,yl,yQueue,conn,old:oldU,cyc,R,nParts,partNo,portion,owed,rDone,ahead,roundDone,roundPages:R.pages.length,partsLeft:nParts-R.done,graduating};
 }
 function getCount(x,id){if(x.n&&x.n[id]!=null)return x.n[id];
   if(id==='listen')return x.listen||0;if(id==='rec')return x.rec||0;if(id==='reps')return x.reps||0;if(id==='tafsir')return x.tafsir?1:0;if(id==='memo')return x.memo?1:0;return x.c&&x.c[id]?1:0}
@@ -160,7 +160,7 @@ function status(t=TODAY()){
   const lg=t===TODAY()?log(t):(S.logs[t]||{pages:{},conn:{},revChk:{},y:0}),st=S.settings,P=plan(t),tp=lessonFor(t),rest=isRest(t);
   const newState=tp.done?'done':(rest?'rest':(tp.finished?'done':'todo'));
   const newFrac=tp.done?1:(t!==TODAY()?0:tp.pages.length?tp.pages.reduce((a,p)=>a+pageFrac(p),0)/tp.pages.length:1);
-  const yNeed=!!P.yl;const yDone=!yNeed||P.yl.yDate===t;const yT=yNeed?yTarget(P.yl):st.yreps;const yCount=Math.min(lg.y||0,yT);
+  const yNeed=!!P.yl;const yDone=!P.yQueue.length;const yT=yNeed?yTarget(P.yl):st.yreps;const yCount=yNeed?Math.min(P.yl.yDate?yT:((lg.yc&&lg.yc[P.yl.n])||0),yT):0;
   const cMiss=t===TODAY()?P.conn.map(l=>({l,days:connMissed(l,t)})).filter(x=>x.days.length):[];const cOwed=cMiss.reduce((a,x)=>a+x.days.length,0);
   const cTotal=P.conn.length+cOwed,cDone=P.conn.filter(l=>lg.conn[l.n]).length;
   const rNeed=P.old.length>0;const rDone=!rNeed||P.rDone;const rChk=rDone?P.portion.length:P.portion.filter(p=>S.revTicks[p]).length;
@@ -258,7 +258,7 @@ function vToday(){
   const yPages=P.yl?lessonLabel(P.yl):'';
   h+=`<div class="tasks">
    ${taskRow('memorize','New page',s.rest&&!s.tp.done?'Rest day — no new page':(s.tp.done?'Done · page '+lessonLabel(s.tp.lesson):stepSummary()),s.newState,s.newFrac,s.newState==='done'?chipFor('done','Done'):s.newState==='rest'?chipFor('rest','Rest'):chipFor(s.newFrac>0?'prog':'',Math.round(s.newFrac*100)+'%'))}
-   ${taskRow('memorize','Yesterday’s repetition',s.yNeed?(isJoinLesson(P.yl)?'Whole page '+P.yl.pages[0]+' joined':'Page '+yPages)+' · '+s.yT+'× from memory':'Nothing from yesterday',s.yDone?'done':'todo',s.yCount/s.yT,s.yDone?chipFor('done',s.yNeed?'Done':'—'):chipFor(s.yCount?'prog':'',s.yCount+'/'+s.yT))}
+   ${taskRow('memorize','Yesterday’s repetition',s.yNeed?(isJoinLesson(P.yl)?'Whole page '+P.yl.pages[0]+' joined':'Page '+yPages)+' · '+s.yT+'× from memory'+(P.yQueue.length>1?' · '+P.yQueue.length+' due':''):'Nothing from yesterday',s.yDone?'done':'todo',s.yCount/s.yT,s.yDone?chipFor('done',s.yNeed?'Done':'—'):chipFor(s.yCount?'prog':'',s.yCount+'/'+s.yT))}
    ${taskRow('connection','Connection',s.cTotal?(n=>n+' page'+(n>1?'s':'')+' · once each, '+P.tgt+' times in all')([...new Set([].concat(...P.conn.map(l=>l.pages)))].length):'Builds up as you memorize',s.cDone===s.cTotal?'done':'todo',s.cTotal?s.cDone/s.cTotal:1,s.cDone===s.cTotal?chipFor('done',s.cTotal?'Done':'—'):chipFor(s.cDone?'prog':'',s.cDone+'/'+s.cTotal))}
    ${taskRow('revision','Revision',s.rNeed?(s.rDone?(lastRevPart(P,s.t)?'Completed part '+lastRevPart(P,s.t):'Done'):'Part '+P.partNo+' of '+P.nParts+(P.owed.length>1?' · '+P.owed.length+' parts due (catching up)':' · pages '+range(P.portion))):'Pages arrive after '+P.tgt+' connection recitations',s.rDone?'done':'todo',s.rNeed&&!s.rDone?s.rChk/Math.max(1,P.portion.length):1,s.rDone?chipFor('done',s.rNeed?'Done':'—'):chipFor(s.rChk?'prog':'',s.rChk+'/'+P.portion.length+(P.owed.length>1?' · '+P.owed.length+' due':'')))}
   </div>`;
@@ -287,8 +287,8 @@ function vMemorize(){
   }
   // Yesterday
   if(P.yl){
-    const done=P.yl.yDate===t;
-    h+=`<section class="card"><div class="card-h"><h2>Yesterday’s repetition</h2>${done?chipFor('done','Done'):chipFor(s.yCount?'prog':'',s.yCount+'/'+s.yT)}</div><p style="margin:0">${esc(yDesc(P.yl))} · ${esc(pageMeta(P.yl.pages[0]))}</p><p class="small muted" style="margin:2px 0 0">${isJoinLesson(P.yl)?`You finished this page in parts, so instead of the usual ${st.yreps}, recite it joined ${s.yT} times from memory.${surahsOn(P.yl.pages[0]).length>1||P.yl.split!=null?'':''} <button class="flag ${joinSplit(P.yl)?'on':''}" data-act="ySplitTog">${joinSplit(P.yl)?'Page has two surahs ✓':'Page has two surahs?'}</button>`:`Recite it ${s.yT} times from memory, without looking at the mushaf.`}</p>
+    const done=!P.yQueue.length;
+    h+=`<section class="card"><div class="card-h"><h2>Yesterday’s repetition</h2>${done?chipFor('done','Done'):chipFor(s.yCount?'prog':'',s.yCount+'/'+s.yT)}</div>${P.yQueue.length>1?`<p class="small muted" style="margin:-4px 0 6px">${P.yQueue.length} pages waiting from missed days. Do them one at a time, oldest first.</p>`:''}<p style="margin:0">${esc(yDesc(P.yl))} · ${esc(pageMeta(P.yl.pages[0]))}</p><p class="small muted" style="margin:2px 0 0">${isJoinLesson(P.yl)?`You finished this page in parts, so instead of the usual ${st.yreps}, recite it joined ${s.yT} times from memory.${surahsOn(P.yl.pages[0]).length>1||P.yl.split!=null?'':''} <button class="flag ${joinSplit(P.yl)?'on':''}" data-act="ySplitTog">${joinSplit(P.yl)?'Page has two surahs ✓':'Page has two surahs?'}</button>`:`Recite it ${s.yT} times from memory, without looking at the mushaf.`}</p>
       <div class="counter">${ring(s.yCount,s.yT,'y','')}<div class="ctrls"><button class="btn pri" data-act="y">+1 from memory</button><button class="btn" data-act="yUndo" ${s.yCount?'':'disabled'}>Undo</button>${P.yl.pages.map(p=>weakBtn(p)).join('')}</div></div></section>`;
   }else{
     h+=`<section class="card"><div class="card-h"><h2>Yesterday’s repetition</h2></div><div class="empty">Nothing to repeat yet. The page you memorize today appears here tomorrow.</div></section>`;
@@ -325,17 +325,17 @@ function pageCard(p,st,ln){
         title=endOfSurah?`${pre} · end of Surah ${esc(it.s)}`:`${pre}${next?' + first line of p. '+next:''}`;
         note=(ln&&ln[0]>1?'Recite it joined to the lines before. ':'')+(endOfSurah?`Watch where each verse stops and starts. This completes the surah${(()=>{const later=it&&(ITEMS_BY_PAGE[p]||[]).find(x=>x.i<it.i);if(later)return `. ${esc(surahName(later.ss[later.ss.length-1]))} begins right after on this page${memItems().has(later.k)?', and you’ve already memorized it, so joining into it is optional':''}`;return nextDone?`. Page ${next} starts ${esc(surahName(onPage(next)[0]))}, which you’ve already memorized, so joining its first line is optional`:''})()}.`:'Watch where each verse stops and starts. Don’t stop at the last verse; join it to the next page.')}}
     else if(z.id==='rec'){title=`Record ${c} recitation${c>1?'s':''} from memory`;note=`Play them back while looking at the mushaf. Even one mistake means record all ${c} again.${x.recReset?` Restarted ${x.recReset}×.`:''}`}
-    else if(z.id==='reps'){title=`Repeat ${c}× from memory`;note=`A repetition with a mistake doesn’t count.${x.miss?` ${x.miss} mistake${x.miss>1?'s':''} so far.`:''}`}
-    else if(z.id==='join'){const split=x.split!=null?x.split:surahsOn(p).length>1;const own=it?it.s:surahOf(p);
+    else if(z.id==='reps'){title=`Repeat ${c}× from memory`;note='A repetition with a mistake doesn’t count.'}
+    else if(z.id==='join'){const split=x.split!=null?x.split:itemShared(it);const own=it?it.s:surahOf(p);
       title=split?`Repeat the ${esc(own)} part of p. ${p} ${c}×`:`Repeat the whole page ${c}×`;
       note=(split?`Join both halves, but only the ${esc(own)} part. The other surah on this page is recited with its own surah.`:'Recite both halves joined as one page, from memory.')+` <button class="flag ${split?'on':''}" data-act="splitTog" data-p="${p}" style="margin-top:6px">${split?'Page has two surahs ✓':'Page has two surahs?'}</button>`}
     else title=esc(z.label||'Custom step')+(c>1?` ${c}×`:'');
     if(z.label&&STEP_NAMES[z.id])title=esc(z.label)+(c>1?` · ${c}×`:'');
     let ctl;
-    if(z.id==='rec')ctl=`<div class="row"><span class="chip ${ok?'done':v?'prog':''} num">${v} / ${c} clean</span><button class="btn" data-act="inc" ${at} ${dis}>Clean recording</button><button class="btn warn" data-act="recBad" ${at} ${locked||ok||!v?'disabled':''}>Found a mistake</button></div>`;
+    if(z.id==='rec')ctl=`<div class="row"><span class="chip ${ok?'done':v?'prog':''} num">${v} / ${c} clean</span><button class="btn" data-act="inc" ${at} ${dis}>+1 clean recording</button><button class="btn" data-act="dec" ${at} ${v>0?'':'disabled'}>Undo</button><button class="btn" data-act="recBad" ${at} ${locked||ok||!v?'disabled':''}>Start over</button></div>`;
     else if(c===1)ctl=`<div class="row"><button class="check ${v?'on':''}" data-act="tog" ${at} ${locked?'disabled':''}><span class="box">✓</span>${z.id==='memo'?'I’ve memorized it':'Done'}</button></div>`;
     else if(c<=10&&z.id!=='reps')ctl=`<div class="row"><div class="dots">${Array.from({length:c},(_,q)=>`<button class="dot ${q<v?'on':''}" data-act="dot" ${at} data-i="${q+1}" ${locked?'disabled':''} aria-label="${q+1}">${q+1}</button>`).join('')}</div></div>`;
-    else ctl=`<div class="counter">${locked?ring(0,c,'noop','disabled'):ring(v,c,'inc',at)}<div class="ctrls"><button class="btn pri" data-act="inc" ${at} ${dis}>+1${z.id==='reps'?' clean':''}</button>${z.id==='reps'?`<button class="btn warn" data-act="repMiss" ${at} ${dis}>Mistake · doesn’t count</button>`:''}<button class="btn" data-act="dec" ${at} ${v>0?'':'disabled'}>Undo</button></div></div>`;
+    else ctl=`<div class="counter">${locked?ring(0,c,'noop','disabled'):ring(v,c,'inc',at)}<div class="ctrls"><button class="btn pri" data-act="inc" ${at} ${dis}>+1${z.id==='reps'?' clean':''}</button><button class="btn" data-act="dec" ${at} ${v>0?'':'disabled'}>Undo</button></div></div>`;
     if(!z.req)note=(note?note+' ':'')+'<em>Optional.</em>';
     return `<div class="step ${ok?'ok':''} ${locked?'locked':''} ${col}"><span class="n">${ok?'✓':i}</span><div><div class="h">${title}</div>${note?`<div class="note">${note}</div>`:''}${ctl}</div></div>`;
   }).join('');
@@ -372,8 +372,8 @@ function vWeak(){
   const need=Math.max(1,S.settings.weakClear|0),t=TODAY(),list=weakList();
   let h=`<section class="card" id="weak"><div class="card-h"><div><div class="label">Any time · no schedule</div><h2>Weak pages</h2></div><span class="small muted num">${list.length}</span></div>`;
   if(!list.length)return h+`<div class="empty">Flag a shaky page from Connection, Revision or Yesterday’s repetition. It comes off after ${need} clean recitations.</div></section>`;
-  h+=`<p class="small muted" style="margin:-4px 0 6px">Recite it from memory and tap after each recitation. Mistakes are tracked but don’t reset the count. ${need} clean recitations and it comes off the list.</p><div class="list">${list.map(w=>{const p=w.p,c=Math.min(w.clean||0,need);
-    return `<div class="li wkrow"><div class="m"><b>Page ${p}</b><div>${esc(surahOf(p))} ${need<=7?`<span class="wkdots" aria-label="${c} of ${need} clean recitations">${Array.from({length:need},(_,i)=>`<i class="${i<c?'on':''}"></i>`).join('')}</span>`:`<span class="wkbar" aria-hidden="true"><b style="width:${Math.round(c/need*100)}%"></b></span><span class="num">${c}/${need}</span>`}</div></div><div class="wkb"><button class="btn pri" data-act="wkClean" data-p="${p}">Clean</button><button class="btn warn" data-act="wkMiss" data-p="${p}">Mistake</button>${w.prev?`<button class="mini" data-act="wkUndo" data-p="${p}" aria-label="Undo last tap" style="height:auto">↶</button>`:''}</div></div>`}).join('')}</div>`;
+  h+=`<p class="small muted" style="margin:-4px 0 6px">Recite it from memory and tap Clean after each clean recitation. ${need} clean recitations and it comes off the list.</p><div class="list">${list.map(w=>{const p=w.p,c=Math.min(w.clean||0,need);
+    return `<div class="li wkrow"><div class="m"><b>Page ${p}</b><div>${esc(surahOf(p))} ${need<=7?`<span class="wkdots" aria-label="${c} of ${need} clean recitations">${Array.from({length:need},(_,i)=>`<i class="${i<c?'on':''}"></i>`).join('')}</span>`:`<span class="wkbar" aria-hidden="true"><b style="width:${Math.round(c/need*100)}%"></b></span><span class="num">${c}/${need}</span>`}</div></div><div class="wkb"><button class="btn pri" data-act="wkClean" data-p="${p}">Clean</button><button class="btn" data-act="wkUndo" data-p="${p}" ${(w.clean||0)>0?'':'disabled'}>Undo</button></div></div>`}).join('')}</div>`;
   return h+'</section>';
 }
 function dayName(k){const tm=fromKey(TODAY());tm.setDate(tm.getDate()+1);return k===dk(tm)?'tomorrow':fmt(fromKey(k),{weekday:'long'})}
@@ -523,8 +523,8 @@ function act(a,d){
     case 'aheadMemClose':ui.aheadMem=false;ui.openStep={};render();return;
     case 'complete':{const tp=workTarget();if(tp.done||!tp.pages.length)return;ui.aheadMem=false;const L={n:S.lessons.length+1,pages:tp.pages.slice(),date:tp.date,at:Date.now()};if(tp.keys&&tp.keys.length)L.keys=tp.keys.slice();if(tp.lines)L.lines=tp.lines.slice();S.lessons.push(L);S.lessons.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.n-b.n));break}
     case 'ySplitTog':{const P=plan();if(!P.yl)return;P.yl.split=!joinSplit(P.yl);break}
-    case 'y':{const lg=log(),P=plan();if(!P.yl)return;const yt=yTarget(P.yl);lg.y=Math.min(yt,(lg.y||0)+1);if(lg.y>=yt)P.yl.yDate=t;buzz();keepAwake();break}
-    case 'yUndo':{const lg=log(),P=plan();lg.y=Math.max(0,(lg.y||0)-1);if(P.yl&&P.yl.yDate===t&&lg.y<yTarget(P.yl))delete P.yl.yDate;break}
+    case 'y':{const lg=log(),P=plan();const l=P.yQueue[0];if(!l)return;const yt=yTarget(l);if(!lg.yc)lg.yc={};lg.yc[l.n]=Math.min(yt,(lg.yc[l.n]||0)+1);if(lg.yc[l.n]>=yt)l.yDate=t;buzz();keepAwake();break}
+    case 'yUndo':{const lg=log(),P=plan();if(!lg.yc)lg.yc={};let l=P.yQueue[0];if(!l||!(lg.yc[l.n]>0)){const dt=P.yl&&P.yl.yDate===t?P.yl:null;if(dt)l=dt}if(!l)return;lg.yc[l.n]=Math.max(0,(lg.yc[l.n]||yTarget(l))-1);if(l.yDate===t&&lg.yc[l.n]<yTarget(l))delete l.yDate;break}
     case 'connMiss':{const P=plan();const l=P.conn.find(q=>String(q.n)===String(d.n));if(!l)return;const days=connMissed(l,t);if(!days.length)return;const g=log(days[0]);g.conn[l.n]=1;S.cc[l.n]=(S.cc[l.n]||0)+1;break}
     case 'connA':{const lg=log(d.d),n=d.n;if(lg.conn[n]){delete lg.conn[n];S.cc[n]=Math.max(0,(S.cc[n]||0)-1)}else{lg.conn[n]=1;S.cc[n]=(S.cc[n]||0)+1}break}
     case 'connAllA':{const lg=log(d.d),P=plan(d.d);const all=P.conn.every(l=>lg.conn[l.n]);P.conn.forEach(l=>{const n=l.n;if(all){if(lg.conn[n]){delete lg.conn[n];S.cc[n]=Math.max(0,(S.cc[n]||0)-1)}}else if(!lg.conn[n]){lg.conn[n]=1;S.cc[n]=(S.cc[n]||0)+1}});break}
@@ -536,7 +536,7 @@ function act(a,d){
     case 'wkClean':{const w=S.wk[p];if(!w)return;w.prev={clean:w.clean||0,mistakes:w.mistakes||0};w.clean=(w.clean||0)+1;w.last=t;w.reviews=(w.reviews||0)+1;buzz();
       if(w.clean>=Math.max(1,st.weakClear|0)){S.recovered.push({p,since:w.since,cleared:t,reviews:w.reviews});delete S.wk[p];delete S.weak[p]}break}
     case 'wkMiss':{const w=S.wk[p];if(!w)return;w.prev={clean:w.clean||0,mistakes:w.mistakes||0};w.last=t;w.reviews=(w.reviews||0)+1;w.mistakes=(w.mistakes||0)+1;S.miss[p]=(S.miss[p]||0)+1;break}
-    case 'wkUndo':{const w=S.wk[p];if(!w||!w.prev)return;if((w.mistakes||0)>w.prev.mistakes)S.miss[p]=Math.max(0,(S.miss[p]||0)-1);w.clean=w.prev.clean;w.mistakes=w.prev.mistakes;delete w.prev;break}
+    case 'wkUndo':{const w=S.wk[p];if(!w||!(w.clean>0))return;w.clean--;delete w.prev;break}
     case 'goWeak':ui.tab='revision';render();setTimeout(()=>{const el=document.getElementById('weak');if(el)el.scrollIntoView({behavior:'smooth',block:'start'})},30);return;
     case 'revChk':{if(S.revTicks[p])delete S.revTicks[p];else S.revTicks[p]=1;break}
     case 'revFinish':case 'revAheadFinish':{const P=plan();const extra=a==='revAheadFinish';
