@@ -188,6 +188,10 @@ details.setup>summary{cursor:pointer;font-weight:500;color:var(--muted);font-siz
 :root[data-theme="light"] .wtag.w2{background:#fbe6d2;color:#a2531a}@media (prefers-color-scheme: light){:root:not([data-theme="dark"]) .wtag.w2{background:#fbe6d2;color:#a2531a}}
 .wkmenu{display:flex;flex-wrap:wrap;gap:6px;grid-column:1/-1;justify-content:flex-end}
 .wkrow{grid-template-columns:1fr auto!important}
+.rplist{display:flex;flex-direction:column}
+.rp{padding-block:12px;border-top:1px solid var(--line)}.rp:first-child{border-top:0;padding-top:4px}
+.rp-h{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.rp .row{margin-top:8px}
 .empty{padding:14px;border:1px dashed var(--line);border-radius:12px;color:var(--muted);font-size:14px;background:var(--sunk)}
 
 
@@ -264,19 +268,17 @@ function range(pages){if(!pages.length)return'';const a=[...pages].sort((x,y)=>x
 const STEP_DEF=[{id:"listen",on:true,req:true,count:3},{id:"tafsir",on:true,req:true,count:1},{id:"memo",on:true,req:true,count:1},{id:"rec",on:true,req:true,count:3},{id:"reps",on:true,req:true,count:40}];
 const STEP_SHORT={listen:"Listen",tafsir:"Tafsir",memo:"Memorize",rec:"Record",reps:"Repeat"};
 const STEP_NAMES={listen:"Listen to a reciter",tafsir:"Read the tafsir",memo:"Memorize the page",rec:"Record clean recitations",reps:"Repeat from memory"};
-const DEF={dayStart:3,joinReps:40,weakClear:20,weakL1:10,weakL2:20,weakL3:40,weakStep:true,priorConn:0,inOrder:true,steps:STEP_DEF.map(x=>({...x})),priorTo:0,priorPart:0,order:"surah",startPage:604,dir:-1,ppd:'1',listen:3,rec:3,reps:40,yreps:5,connTarget:10,cycle:6,rest:[],prior:""};
+const DEF={ladder:[10,5],partReps:10,dayStart:3,joinReps:40,weakClear:20,weakL1:10,weakL2:20,weakL3:40,weakStep:true,priorConn:0,inOrder:true,steps:STEP_DEF.map(x=>({...x})),priorTo:0,priorPart:0,order:"surah",startPage:604,dir:-1,ppd:'1',listen:3,rec:3,reps:40,yreps:5,connTarget:10,cycle:6,rest:[],prior:""};
 const LS='tikrar-tracker-v1';
 const CLIENT=Math.random().toString(36).slice(2);
 function fresh(){return{v:1,setup:false,settings:{...DEF},lessons:[],logs:{},done:{},revCursor:0,weak:{},miss:{},cc:{},pp:{},wk:{},wkNo:{},recovered:[],revLog:{},revStack:[],revExtra:{},revNum:{},revTicks:{},round:null,updated:0}}
 function repairLessons(s){let n=0;const td=dk();
   s.lessons.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.n-b.n));
-  const seen={};const before=s.lessons.length;s.lessons=s.lessons.filter(l=>{const k=((l.keys&&l.keys[0])||l.pages.join(','))+'@'+(l.lines?l.lines.join('-'):'all');if(seen[k]&&!l.yDate)return false;seen[k]=1;return true});n+=before-s.lessons.length;
+  const seen={};const before=s.lessons.length;s.lessons=s.lessons.filter(l=>{const k=((l.keys&&l.keys[0])||l.pages.join(','))+'@'+(l.lines?l.lines.join('-'):'all');if(seen[k]&&!(l.st>0))return false;seen[k]=1;return true});n+=before-s.lessons.length;
   const ends={};s.lessons.forEach(l=>{if(!l.lines)return;const key=(l.keys&&l.keys[0])||String(l.pages[0]);const prev=ends[key]||0;if(l.lines[0]<=prev&&prev<PL(l.pages[0])){const len=l.lines[1]-l.lines[0];const a=prev+1;l.lines=[a,Math.min(PL(l.pages[0]),a+len)];n++}ends[key]=Math.max(prev,l.lines[1])});
-  let li=-1;s.lessons.forEach((l,i)=>{if(l.date<td&&l.yDate)li=i});const stale=new Set();s.lessons.forEach((l,i)=>{if(i<li&&!l.yDate){l.yDate=l.date;stale.add(String(l.n));n++}});
-  const head=s.lessons.find((l,i)=>i>li&&l.date<td&&!l.yDate);const tg=s.logs&&s.logs[td];
-  if(head&&tg&&tg.yc){let moved=0;Object.keys(tg.yc).forEach(k=>{if(stale.has(k)){moved=Math.max(moved,tg.yc[k]);delete tg.yc[k]}});if(moved&&!tg.yc[head.n]){const tgt=(head.lines&&head.lines[0]>1&&head.lines[1]>=PL(head.pages[0])&&s.settings.joinReps>0)?s.settings.joinReps:s.settings.yreps;tg.yc[head.n]=Math.min(moved,tgt);if(moved>=tgt)head.yDate=td}}
+  let li=-1;s.lessons.forEach((l,i)=>{if(l.date<td&&l.st>0)li=i});s.lessons.forEach((l,i)=>{if(i<li&&!(l.st>0)){l.st=99;l.sd=l.date;n++}});
   if(n)s.updated=Date.now();return n}
-function normalize(o){const f=fresh();if(!o||typeof o!=='object')return f;const s={...f,...o};s.settings={...DEF,...(o.settings||{})};if(o.settings&&!o.settings.order)s.settings.order=o.settings.dir===-1?'backward':'forward';['logs','done','weak','miss','cc','pp','wk','wkNo','revExtra','revNum','revTicks'].forEach(k=>{if(!s[k]||typeof s[k]!=='object')s[k]={}});if(!Array.isArray(s.lessons))s.lessons=[];s.lessons.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.n-b.n));repairLessons(s);
+function normalize(o){const f=fresh();if(!o||typeof o!=='object')return f;const s={...f,...o};s.settings={...DEF,...(o.settings||{})};if(o.settings&&!o.settings.order)s.settings.order=o.settings.dir===-1?'backward':'forward';['logs','done','weak','miss','cc','pp','wk','wkNo','revExtra','revNum','revTicks'].forEach(k=>{if(!s[k]||typeof s[k]!=='object')s[k]={}});if(!Array.isArray(s.lessons))s.lessons=[];s.lessons.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.n-b.n));if(!s.fixLad){s.fixLad=1;const td=dk();s.lessons.forEach(l=>{if(l.st!=null)return;if(l.yDate){if(l.yDate===td){l.st=1;l.sd=td}else{l.st=99;l.sd=l.yDate}}else l.st=0})}if(!Array.isArray(s.settings.ladder)||!s.settings.ladder.length)s.settings.ladder=[10,5];repairLessons(s);
   if(!s.fixYq){s.fixYq=1;const lim=fromKey(dk());lim.setDate(lim.getDate()-7);const lk=dk(lim);s.lessons.forEach(l=>{if(!l.yDate&&l.date<lk)l.yDate=l.date});const tg=s.logs[dk()];if(tg&&tg.y){const pr=s.lessons.filter(l=>l.date<dk()&&!l.yDate);if(pr.length){tg.yc=tg.yc||{};tg.yc[pr[pr.length-1].n]=tg.y}}}
   if(!s.fix3am&&s.lessons.length){s.fix3am=1;const last=s.lessons[s.lessons.length-1];const td=dk();if(last&&!last.at&&last.date===td){const y=fromKey(td);y.setDate(y.getDate()-1);const yk=dk(y);if(!s.lessons.some(l=>l.date===yk)){last.date=yk;s.updated=Date.now()}}}else if(!s.fix3am)s.fix3am=1;s.lessons.forEach(l=>{if(l.half){l.lines=l.half===1?[1,8]:[9,15];delete l.half}});Object.keys(s.pp||{}).forEach(k=>{const m=k.match(/^(\d+)h([12])$/);if(m){s.pp[m[1]+'L'+(m[2]==='1'?1:9)]=s.pp[k];delete s.pp[k]}});Object.values(s.logs||{}).forEach(g=>{if(g&&g.ppd!=null)g.ppd=normAmt(g.ppd)});if(!s.revLog||typeof s.revLog!=='object')s.revLog={};if(!s.revExtra||typeof s.revExtra!=='object')s.revExtra={};{const td=dk();Object.keys(s.revLog).filter(k=>k>td).sort().forEach(k=>{(s.revExtra[td]=s.revExtra[td]||[]).push(s.revLog[k]);delete s.revLog[k]});(s.revStack||[]).forEach(e=>{if(e.date>td){e.date=td;e.extra=true}})}if(!Array.isArray(s.revStack))s.revStack=[];{const tg=s.logs&&s.logs[dk()];if(tg&&tg.revDone&&tg.revPortion&&!s.revLog[dk()]){s.revLog[dk()]=tg.revPortion;s.revStack.push({date:dk(),prev:tg.revPrev||0})}}if(!Array.isArray(s.recovered))s.recovered=[];if(!o.wk20){s.settings.weakClear=20;s.wk20=1}if(!o.wkLv){s.wkLv=1;s.settings.weakL2=s.settings.weakClear||20;Object.keys(s.wk||{}).forEach(k=>{if(!s.wk[k].level)s.wk[k].level=2})}Object.keys(s.weak).forEach(k=>{if(s.weak[k]&&!s.wk[k])s.wk[k]={since:dk(),reviews:0,clean:0,mistakes:0,last:null,note:''}});s.weak={};Object.keys(s.wk).forEach(k=>s.weak[k]=1);if(!o.pp){const tl=s.logs[dk()];if(tl&&tl.pages)Object.keys(tl.pages).forEach(k=>{s.pp[k]=tl.pages[k]})}s.settings.order='surah';s.settings.startPage=TOTAL;if(!Array.isArray(s.settings.rest))s.settings.rest=[];if(!Array.isArray(s.settings.steps))s.settings.steps=STEP_DEF.map(x=>({...x}));s.settings.steps=s.settings.steps.filter(x=>x&&x.id&&(STEP_NAMES[x.id]||x.custom));STEP_DEF.forEach(d=>{if(!s.settings.steps.some(x=>x.id===d.id))s.settings.steps.push({...d,on:false})});s.settings.steps.forEach(z=>{if(!(z.count>=1))z.count=z.id==='listen'?(o.settings&&o.settings.listen)||3:z.id==='rec'?(o.settings&&o.settings.rec)||3:z.id==='reps'?(o.settings&&o.settings.reps)||40:1});s.settings.ppd=normAmt(s.settings.ppd);return s}
 let S=fresh();
@@ -319,10 +321,15 @@ function priorItems(){const out=new Set();const st=S.settings;
 function priorSet(){seqItems();const s=new Set();priorItems().forEach(k=>s.add(ITEM_BY_KEY[k].p));return s}
 function memItems(){const out=priorItems();S.lessons.forEach(l=>{if(l.lines&&l.lines[1]<PL(l.pages[0])&&!(l.keys&&itemShared(lessonItem(l))))return;if(l.keys)l.keys.forEach(k=>out.add(k));else l.pages.forEach(p=>(ITEMS_BY_PAGE[p]||[]).forEach(x=>out.add(x.k)))});return out}
 function memorizedSet(){const mi=memItems(),s=new Set();Object.keys(ITEMS_BY_PAGE).forEach(p=>{if(ITEMS_BY_PAGE[p].every(x=>mi.has(x.k)))s.add(+p)});return s}
+function ladderOf(l){if(!l||l.virtual)return[];const st=S.settings;const full=!l.lines||l.lines[1]>=PL(l.pages[0])||(l.keys&&itemShared(lessonItem(l)));if(!full)return[Math.max(1,st.partReps|0)];const lad=(st.ladder||[10,5]).map(x=>Math.max(1,x|0));return isJoinLesson(l)?[Math.max(1,st.joinReps|0)].concat(lad):lad}
+function stDone(l){return Math.min(l.st||0,ladderOf(l).length)}
+function ladderComplete(l){return l.virtual||stDone(l)>=ladderOf(l).length}
+function isPartLesson(l){return ladderOf(l).length===1&&!!l.lines&&l.lines[1]<PL(l.pages[0])&&!(l.keys&&itemShared(lessonItem(l)))}
+function stageText(l,k){const lad=ladderOf(l);if(isPartLesson(l))return 'Part repetition';if(isJoinLesson(l)&&k===0)return 'Joined page';return 'Day '+(k+1)+' of '+lad.length}
 function isJoinLesson(l){return !!(l&&l.lines&&l.lines[0]>1&&l.lines[1]>=PL(l.pages[0])&&S.settings.joinReps>0)}
-function yTarget(l){return isJoinLesson(l)?S.settings.joinReps:S.settings.yreps}
+function yTarget(l){const lad=ladderOf(l);return lad[Math.min(stDone(l),lad.length-1)]||1}
 function joinSplit(l){return l.split!=null?l.split:itemShared(lessonItem(l))}
-function yDesc(l){if(!isJoinLesson(l))return 'Page '+lessonLabel(l);const p=l.pages[0];return joinSplit(l)?`The ${surahName(lessonItem(l).ss[0])} part of p. ${p}, both parts joined`:`Whole page ${p}, both parts joined`}
+function yDesc(l,k){if(!isJoinLesson(l)||(k!=null&&k>0))return 'Page '+(isJoinLesson(l)?connLabel(l):lessonLabel(l));const p=l.pages[0];return joinSplit(l)?`The ${surahName(lessonItem(l).ss[0])} part of p. ${p}, both parts joined`:`Whole page ${p}, both parts joined`}
 function lessonLabel(l){const it=l.pages.length===1?lessonItem(l):null;const part=it&&itemShared(it)?surahName(it.ss[0])+' part':'';const bits=[part,l.lines&&!part?linesTxt(l.lines):''].filter(Boolean);return range(l.pages)+(bits.length?` (${bits.join(', ')})`:'')}
 function todaysPages(){return lessonFor(TODAY())}
 function lessonFor(t){
@@ -344,7 +351,7 @@ function ccBefore(key,lg){return (S.cc[key]||0)-(lg&&lg.conn&&lg.conn[key]?1:0)}
 function appStart(){let m=null;S.lessons.forEach(l=>{if(!m||l.date<m)m=l.date});Object.keys(S.logs).forEach(k=>{if(!m||k<m)m=k});return m||TODAY()}
 function connMissed(l,t){const tgt=Math.max(1,S.settings.connTarget|0);const lgT=S.logs[t]||{conn:{}};
   const left=tgt-(S.cc[l.n]||0)-((lgT.conn&&lgT.conn[l.n])?0:1);if(left<=0)return[];
-  let from;if(l.virtual)from=appStart();else{const yd=l.yDate||(()=>{const d=fromKey(l.date);d.setDate(d.getDate()+1);return dk(d)})();const d=fromKey(yd);d.setDate(d.getDate()+1);from=dk(d)}
+  let from;if(l.virtual)from=appStart();else{const d=fromKey(l.sd||l.date);d.setDate(d.getDate()+1);from=dk(d)}
   const out=[];const d=fromKey(from);while(dk(d)<t){const k=dk(d),g=S.logs[k];if(!(g&&g.conn&&g.conn[l.n]))out.push(k);d.setDate(d.getDate()+1)}
   return out.slice(0,left)}
 function completesPage(l){return !!(l.lines&&l.lines[0]>1&&l.lines[1]>=PL(l.pages[0]))}
@@ -356,13 +363,10 @@ function plan(t=TODAY()){
   const prior=S.lessons.filter(l=>l.date<t);const D=prior.length;
   const virt=recentPrior().map(p=>({n:'v'+p,pages:[p],date:'',virtual:true}));
   const all=virt.concat(prior);
-  let lastY=-1;prior.forEach((l,i)=>{if(l.yDate)lastY=i});
-  const yQueue=prior.slice(lastY+1).filter(l=>!l.yDate);const yqSet=new Set(yQueue);
-  const yDoneToday=prior.filter(l=>l.yDate===t);
-  const yl=yQueue[0]||yDoneToday[yDoneToday.length-1]||null;
-  const conn=all.filter(l=>l!==yl&&!yqSet.has(l)&&!supersededPart(l)&&ccBefore(l.n,lg)<tgt).reverse();
+  const recent=prior.filter(l=>!ladderComplete(l)||l.sd===t);const yl=recent[0]||null;const yQueue=recent.filter(l=>!ladderComplete(l)&&l.sd!==t);
+  const conn=all.filter(l=>(l.virtual||(ladderComplete(l)&&l.sd<t))&&!supersededPart(l)&&ccBefore(l.n,lg)<tgt).reverse();
   const vset=new Set(virt.map(l=>l.pages[0]));
-  const old=[...priorSet()].filter(p=>!vset.has(p));all.forEach(l=>{if(l!==yl&&ccBefore(l.n,lg)>=tgt)old.push(...l.pages)});
+  const old=[...priorSet()].filter(p=>!vset.has(p));all.forEach(l=>{if((l.virtual||(ladderComplete(l)&&l.sd<t))&&ccBefore(l.n,lg)>=tgt)old.push(...l.pages)});
   const oldU=[...new Set(old)].sort((a,b)=>a-b);
   const cyc=Math.max(1,st.cycle|0);
   const chunk=arr=>{const out=[];for(let i=0;i<cyc;i++){const c=arr.slice(Math.floor(i*arr.length/cyc),Math.floor((i+1)*arr.length/cyc));if(c.length)out.push(c)}return out};
@@ -377,12 +381,14 @@ function plan(t=TODAY()){
   const ahead=rDone?portion:[];
   const roundDone=R.parts.slice(0,R.done).reduce((a,c)=>a+c.length,0);
   const graduating=conn.filter(l=>ccBefore(l.n,lg)+(lg.conn&&lg.conn[l.n]?1:0)>=tgt).length;
-  return{D,tgt,yl,yQueue,conn,old:oldU,cyc,R,nParts,partNo,portion,owed,rDone,ahead,roundDone,roundPages:R.pages.length,partsLeft:nParts-R.done,graduating};
+  return{D,tgt,yl,yQueue,recent,conn,old:oldU,cyc,R,nParts,partNo,portion,owed,rDone,ahead,roundDone,roundPages:R.pages.length,partsLeft:nParts-R.done,graduating};
 }
 function getCount(x,id){if(x.n&&x.n[id]!=null)return x.n[id];
   if(id==='listen')return x.listen||0;if(id==='rec')return x.rec||0;if(id==='reps')return x.reps||0;if(id==='tafsir')return x.tafsir?1:0;if(id==='memo')return x.memo?1:0;return x.c&&x.c[id]?1:0}
 function setCount(x,id,v){if(!x.n)x.n={};x.n[id]=Math.max(0,v)}
-function overdue(s){return s.cOwed>0||s.P.owed.length>1||s.P.yQueue.filter(l=>{const d=fromKey(s.t);d.setDate(d.getDate()-1);return l.date<dk(d)}).length>0}
+function daysBetween(a,b){return Math.round((fromKey(b)-fromKey(a))/864e5)}
+function lateStages(s){return s.P.yQueue.filter(l=>daysBetween(l.date,s.t)>stDone(l)+1).length}
+function overdue(s){return s.cOwed>0||s.P.owed.length>1||lateStages(s)>0}
 function lastRevPart(P,t){const ex=S.revExtra[t]||[];const e=ex.length?ex[ex.length-1]:null;const n=e&&e.no?e:S.revNum[t];return n?n.no+' of '+n.of:null}
 function stepState(p,st){const x=S.pp[pkey(p)]||{};const tp=workTarget();
   const list=st.steps.filter(z=>z.on);
@@ -393,12 +399,13 @@ function status(t=TODAY()){
   const lg=t===TODAY()?log(t):(S.logs[t]||{pages:{},conn:{},revChk:{},y:0}),st=S.settings,P=plan(t),tp=lessonFor(t),rest=isRest(t);
   const newState=tp.done?'done':(rest?'rest':(tp.finished?'done':'todo'));
   const newFrac=tp.done?1:(t!==TODAY()?0:tp.pages.length?tp.pages.reduce((a,p)=>a+pageFrac(p),0)/tp.pages.length:1);
-  const yNeed=!!P.yl;const yDone=!P.yQueue.length;const yT=yNeed?yTarget(P.yl):st.yreps;const yCount=yNeed?Math.min(P.yl.yDate?yT:((lg.yc&&lg.yc[P.yl.n])||0),yT):0;
+  const rp=P.recent.map(l=>{const lad=ladderOf(l);const dt=l.sd===t;const k=dt?Math.max(0,stDone(l)-1):stDone(l);const target=lad[k]||1;return{l,k,target,count:dt?target:Math.min(target,(lg.yc&&lg.yc[l.n])||0),doneToday:dt}});
+  const yNeed=rp.length>0;const yDone=rp.every(x=>x.doneToday);const yT=rp.reduce((a,x)=>a+x.target,0);const yCount=rp.reduce((a,x)=>a+x.count,0);
   const cMiss=t===TODAY()?P.conn.map(l=>({l,days:connMissed(l,t)})).filter(x=>x.days.length):[];const cOwed=cMiss.reduce((a,x)=>a+x.days.length,0);
   const cTotal=P.conn.length+cOwed,cDone=P.conn.filter(l=>lg.conn[l.n]).length;
   const rNeed=P.old.length>0;const rDone=!rNeed||P.rDone;const rChk=rDone?P.portion.length:P.portion.filter(p=>S.revTicks[p]).length;
   const allDone=(newState!=='todo')&&yDone&&cDone===cTotal&&rDone;
-  return{t,lg,st,P,tp,rest,yT,cMiss,cOwed,newState,newFrac,yNeed,yDone,yCount,cTotal,cDone,rNeed,rDone,rChk,allDone};
+  return{t,lg,st,P,tp,rest,yT,rp,cMiss,cOwed,newState,newFrac,yNeed,yDone,yCount,cTotal,cDone,rNeed,rDone,rChk,allDone};
 }
 function refreshDone(){const d=fromKey(TODAY());for(let i=0;i<10;i++){const k=dk(d);const s=status(k);if(s.allDone)S.done[k]=1;else delete S.done[k];d.setDate(d.getDate()+1)}}
 function streak(){
@@ -487,12 +494,12 @@ function vToday(){
   const s=status(),st=s.st,P=s.P;
   let h='';
   const pg=s.tp.pages;
-  if(overdue(s))h+=`<div class="card" style="border-color:var(--gold);background:var(--gold-soft)"><b>Catching up</b><div class="small" style="color:var(--ink)">${[s.P.yQueue.length>1?s.P.yQueue.length+' pages waiting for yesterday’s repetition':'',s.cOwed?s.cOwed+' missed connection recitation'+(s.cOwed>1?'s':''):'',s.P.owed.length>1?s.P.owed.length+' revision parts due':''].filter(Boolean).join(' · ')}. Missed work stays until it’s done.</div></div>`;
+  if(overdue(s))h+=`<div class="card" style="border-color:var(--gold);background:var(--gold-soft)"><b>Catching up</b><div class="small" style="color:var(--ink)">${[lateStages(s)?lateStages(s)+' page'+(lateStages(s)>1?'s':'')+' behind on daily repetitions':'',s.cOwed?s.cOwed+' missed connection recitation'+(s.cOwed>1?'s':''):'',s.P.owed.length>1?s.P.owed.length+' revision parts due':''].filter(Boolean).join(' · ')}. Missed work stays until it’s done.</div></div>`;
   h+=`<section class="hero"><div><div class="label">${s.tp.done?'Memorized today':s.rest?'Rest day':'Today’s page'}${s.tp.lines?' · '+linesTxt(s.tp.lines):''}</div><div class="pg num">${pg.length?(pg.length>1?range(pg):'p. '+pg[0]):'—'}</div><div class="sub">${pg.length?esc(surahProgress(pg[0],s.tp.keys&&s.tp.keys[0])+' · Juz '+juzOf(pg[0])):s.tp.finished?'All 604 pages memorized':''}</div></div><div class="day">Lesson ${s.tp.done?s.tp.lesson.n:S.lessons.length+1}<br><span class="small">${memorizedSet().size} / ${TOTAL}</span></div></section>`;
   const yPages=P.yl?lessonLabel(P.yl):'';
   h+=`<div class="tasks">
    ${taskRow('memorize','New page',s.rest&&!s.tp.done?'Rest day — no new page':(s.tp.done?'Done · page '+lessonLabel(s.tp.lesson):s.tp.finished?'All 604 pages memorized':stepSummary()),s.newState,s.newFrac,s.newState==='done'?chipFor('done','Done'):s.newState==='rest'?chipFor('rest','Rest'):chipFor(s.newFrac>0?'prog':'',Math.round(s.newFrac*100)+'%'))}
-   ${taskRow('memorize','Yesterday’s repetition',s.yNeed?(isJoinLesson(P.yl)?'Whole page '+P.yl.pages[0]+' joined':'Page '+yPages)+' · '+s.yT+'× from memory'+(P.yQueue.length>1?' · '+P.yQueue.length+' due':''):'Nothing from yesterday',s.yDone?'done':'todo',s.yCount/s.yT,s.yDone?chipFor('done',s.yNeed?'Done':'—'):chipFor(s.yCount?'prog':'',s.yCount+'/'+s.yT))}
+   ${taskRow('memorize','Recent pages',s.yNeed?s.rp.map(x=>'p. '+(isJoinLesson(x.l)?connLabel(x.l):lessonLabel(x.l))+' '+x.target+'×').join(' · '):'Nothing to repeat yet',s.yDone?'done':'todo',s.yT?s.yCount/s.yT:1,s.yDone?chipFor('done',s.yNeed?'Done':'—'):chipFor(s.yCount?'prog':'',s.yCount+'/'+s.yT))}
    ${taskRow('connection','Connection',s.cTotal?(n=>n+' page'+(n>1?'s':'')+' · once each, '+P.tgt+' times in all')([...new Set([].concat(...P.conn.map(l=>l.pages)))].length):'Builds up as you memorize',s.cDone===s.cTotal?'done':'todo',s.cTotal?s.cDone/s.cTotal:1,s.cDone===s.cTotal?chipFor('done',s.cTotal?'Done':'—'):chipFor(s.cDone?'prog':'',s.cDone+'/'+P.conn.length+(s.cOwed?' · '+s.cOwed+' missed':'')))}
    ${taskRow('revision','Revision',s.rNeed?(s.rDone?(lastRevPart(P,s.t)?'Completed part '+lastRevPart(P,s.t):'Done'):'Part '+P.partNo+' of '+P.nParts+(P.owed.length>1?' · '+P.owed.length+' parts due (catching up)':' · pages '+range(P.portion))):'Pages arrive after '+P.tgt+' connection recitations',s.rDone?'done':'todo',s.rNeed&&!s.rDone?s.rChk/Math.max(1,P.portion.length):1,s.rDone?chipFor('done',s.rNeed?'Done':'—'):chipFor(s.rChk?'prog':'',s.rChk+'/'+P.portion.length+(P.owed.length>1?' · '+P.owed.length+' due':'')))}
   </div>`;
@@ -504,7 +511,7 @@ function vMemorize(){
   const s=status(),st=s.st,P=s.P,t=s.t;let h='<h2 style="font-size:22px">Memorization</h2>';
   // New page
   if(s.tp.done){
-    h+=`<section class="card"><div class="card-h"><h2>Today’s new page</h2>${chipFor('done','Memorized')}</div><p style="margin:0">Page ${lessonLabel(s.tp.lesson)} · ${esc(pageMeta(s.tp.pages[0]))}. Tomorrow you’ll repeat ${isJoinLesson(s.tp.lesson)?'the whole page, joined, '+st.joinReps:'it '+st.yreps} times from memory.</p>${ui.confirmUndo?`<div class="confirm" style="margin-top:10px">Remove this lesson? Its page becomes today’s page again.<div class="row"><button class="btn warn" data-act="undoYes">Remove lesson</button><button class="btn" data-act="undoNo">Keep it</button></div></div>`:`<div class="row"><button class="btn" data-act="undoLesson">Undo · not memorized yet</button></div>`}</section>`;
+    h+=`<section class="card"><div class="card-h"><h2>Today’s new page</h2>${chipFor('done','Memorized')}</div><p style="margin:0">Page ${lessonLabel(s.tp.lesson)} · ${esc(pageMeta(s.tp.pages[0]))}. Tomorrow you’ll repeat ${isJoinLesson(s.tp.lesson)?'the whole page, joined, '+st.joinReps:'it '+(ladderOf(s.tp.lesson)[0]||st.partReps)} times from memory.</p>${ui.confirmUndo?`<div class="confirm" style="margin-top:10px">Remove this lesson? Its page becomes today’s page again.<div class="row"><button class="btn warn" data-act="undoYes">Remove lesson</button><button class="btn" data-act="undoNo">Keep it</button></div></div>`:`<div class="row"><button class="btn" data-act="undoLesson">Undo · not memorized yet</button></div>`}</section>`;
     const ahead=S.lessons.filter(l=>l.date>t);
     if(ahead.length)h+=`<p class="small muted" style="margin:0">Done ahead: ${ahead.map(l=>esc(dayName(l.date))+' (p. '+lessonLabel(l)+')').join(', ')}.</p>`;
     const ad=aheadMemDate(),nx=lessonFor(ad);
@@ -519,13 +526,14 @@ function vMemorize(){
   }else{
     h+=workBlock({...s.tp,date:t},st);
   }
-  // Yesterday
-  if(P.yl){
-    const done=!P.yQueue.length;
-    h+=`<section class="card"><div class="card-h"><h2>Yesterday’s repetition</h2>${done?chipFor('done','Done'):chipFor(s.yCount?'prog':'',s.yCount+'/'+s.yT)}</div>${P.yQueue.length>1?`<p class="small muted" style="margin:-4px 0 6px">${P.yQueue.length} pages waiting from missed days. Do them one at a time, oldest first.</p>`:''}<p style="margin:0">${esc(yDesc(P.yl))} · ${esc(pageMeta(P.yl.pages[0]))}</p><p class="small muted" style="margin:2px 0 0">${isJoinLesson(P.yl)?`You finished this page in parts, so instead of the usual ${st.yreps}, recite it joined ${s.yT} times from memory.${surahsOn(P.yl.pages[0]).length>1||P.yl.split!=null?'':''} <button class="flag ${joinSplit(P.yl)?'on':''}" data-act="ySplitTog">${joinSplit(P.yl)?'Page has two surahs ✓':'Page has two surahs?'}</button>`:`Recite it ${s.yT} times from memory, without looking at the mushaf.`}</p>
-      <div class="counter">${ring(s.yCount,s.yT,'y','')}<div class="ctrls"><button class="btn pri" data-act="y">+1 from memory</button><button class="btn" data-act="yUndo" ${s.yCount?'':'disabled'}>Undo</button>${P.yl.pages.map(p=>weakBtn(p)).join('')}</div></div></section>`;
+  // Recent pages: each page's daily repetitions after memorizing
+  if(s.rp.length){
+    h+=`<section class="card"><div class="card-h"><div><h2>Recent pages</h2><div class="small muted">Daily repetitions from memory before connection</div></div>${s.yDone?chipFor('done','Done'):chipFor(s.yCount?'prog':'',s.yCount+'/'+s.yT)}</div><div class="rplist">${s.rp.map(x=>{const l=x.l,lad=ladderOf(l),late=!x.doneToday&&daysBetween(l.date,s.t)>stDone(l)+1;
+      return `<div class="rp"><div class="rp-h"><div class="m"><b>${esc(yDesc(l,x.k))}</b><div class="small muted">${esc(stageText(l,x.k))} · ${x.target}×${late?' · <span style="color:var(--gold)">late</span>':''}${!isPartLesson(l)&&lad.length>1?' · then '+(lad.slice(x.k+1).map(c=>c+'×').concat(['1× daily']).join(', ')):''}</div></div><span class="chip ${x.doneToday?'done':x.count?'prog':''} num">${x.count}/${x.target}</span></div>
+        ${isJoinLesson(l)&&x.k===0&&!x.doneToday?`<button class="flag ${joinSplit(l)?'on':''}" data-act="ySplitTog" data-n="${l.n}">${joinSplit(l)?'Page has two surahs ✓':'Page has two surahs?'}</button>`:''}
+        <div class="row"><button class="btn pri" data-act="y" data-n="${l.n}" ${x.doneToday?'disabled':''}>+1 from memory</button><button class="btn" data-act="yUndo" data-n="${l.n}" ${x.count?'':'disabled'}>Undo</button>${l.pages.map(p=>weakBtn(p)).join('')}</div></div>`}).join('')}</div></section>`;
   }else{
-    h+=`<section class="card"><div class="card-h"><h2>Yesterday’s repetition</h2></div><div class="empty">Nothing to repeat yet. The page you memorize today appears here tomorrow.</div></section>`;
+    h+=`<section class="card"><div class="card-h"><h2>Recent pages</h2></div><div class="empty">Nothing to repeat yet. The page you memorize today appears here tomorrow.</div></section>`;
   }
   return h;
 }
@@ -583,11 +591,11 @@ function stepSummary(){const st=S.settings;return st.steps.filter(z=>z.on).map(z
 
 function vConnection(){
   const s=status(),P=s.P,st=s.st,lg=s.lg,t=s.t;
-  let h=`<h2 style="font-size:22px">Connection</h2><p class="muted" style="margin:-6px 0 0">After its day of ${st.yreps} repetitions, each page comes here. Recite it once a day from memory; after ${P.tgt} recitations it moves to revision. Missed days don’t count.</p>`;
+  let h=`<h2 style="font-size:22px">Connection</h2><p class="muted" style="margin:-6px 0 0">After its daily repetitions (${(st.ladder||[]).map(c=>c+'×').join(', then ')}), each page comes here. The last of those days counts as its first connection day. Recite it once a day from memory; after ${P.tgt} in total it moves to revision. Missed days don’t count.</p>`;
   h+=`<div class="stats"><div class="stat"><b class="num">${P.conn.length}</b><span>in connection</span></div><div class="stat"><b class="num">${s.cDone}/${P.conn.length}</b><span>done today</span></div><div class="stat"><b class="num">${P.graduating}</b><span>move to revision tomorrow</span></div></div>`;
   const missOf={};s.cMiss.forEach(x=>missOf[x.l.n]=x.days.length);
   if(s.cOwed)h+=`<div class="card" style="border-color:var(--gold);background:var(--gold-soft)"><b>${s.cOwed} missed recitation${s.cOwed>1?'s':''}</b><div class="small" style="color:var(--ink)">Pages marked “+ missed” were due on days you didn’t do connection. Tap that button once per missed day, as well as today’s tick.</div></div>`;
-  if(!P.conn.length){h+=`<div class="empty">${P.yl?'Only yesterday’s page so far — it’s handled in Yesterday’s repetition. Tomorrow it joins Connection.':'Connection starts once you’ve memorized a couple of pages.'}</div>`;return h}
+  if(!P.conn.length){h+=`<div class="empty">${P.recent.length?'Your newest pages are still in their daily repetitions (Memorize → Recent pages). They join Connection after that.':'Connection starts once you’ve memorized a couple of pages.'}</div>`;return h}
   const sorted=P.conn.slice().sort((a,b)=>Math.min(...a.pages)-Math.min(...b.pages));
   const groups=[];sorted.forEach(l=>{const sn=ownerSurah(Math.min(...l.pages),l.keys&&l.keys[0]);const g=groups[groups.length-1];if(g&&g.s===sn)g.ls.push(l);else groups.push({s:sn,ls:[l]})});
   const row=l=>{const on=!!lg.conn[l.n];return `<div class="li"><button class="cb ${on?'on':''}" data-act="conn" data-n="${l.n}" aria-label="Mark page ${range(l.pages)} recited">✓</button><div class="m"><b>Page ${connLabel(l)}</b><div><span class="num">${Math.min(P.tgt,ccBefore(l.n,lg)+(on?1:0))}/${P.tgt}</span> · ${l.virtual?'Memorized before':'Lesson '+l.n}${l.virtual?'':' · '+fmt(fromKey(l.date),{month:'short',day:'numeric'})}</div></div><span class="rowend">${missOf[l.n]?`<button class="flag on" data-act="connMiss" data-n="${l.n}">+${missOf[l.n]} missed</button>`:''}${l.pages.map(flagMenu).join('')}</span>${menuRow(l.pages)}</div>`};
@@ -647,7 +655,7 @@ function vRevision(){
 function vProgress(){
   const P=plan(),mem=memorizedSet(),tp=todaysPages();
   const conn=new Set();P.conn.forEach(l=>l.pages.forEach(p=>conn.add(p)));
-  const fresh=new Set([...(P.yl?P.yl.pages:[]),...(tp.done?tp.pages:[])]);
+  const fresh=new Set([...[].concat(...P.recent.map(l=>l.pages)),...(tp.done?tp.pages:[])]);
   let rows='';
   for(let j=0;j<30;j++){const a=JUZ[j],b=j<29?JUZ[j+1]-1:TOTAL;let c='';for(let p=a;p<=b;p++){const cls=fresh.has(p)?'new':conn.has(p)?'conn':mem.has(p)?'rev':'';c+=`<span class="cell ${cls} ${S.wk[p]?'weak w'+wkLevel(S.wk[p]):''}" title="p. ${p} · ${esc(surahOf(p))}"></span>`}rows+=`<div class="juz"><span class="jl num">Juz ${j+1}</span><div class="cells">${c}</div></div>`}
   let h=`<h2 style="font-size:22px">Progress</h2><div class="stats"><div class="stat"><b class="num">${mem.size}</b><span>of ${TOTAL} pages</span></div><div class="stat"><b class="num">${streak()}</b><span>day streak</span></div><div class="stat"><b>${projection()}</b><span>projected finish</span></div></div>`;
@@ -686,7 +694,8 @@ function vSettings(){
    <div class="field" style="margin-top:8px"><div class="fl"><b>Keep steps in order</b><span>Each step unlocks after the required ones above it</span></div><button class="sw ${st.inOrder?'on':''}" data-act="inOrder" aria-pressed="${st.inOrder}" aria-label="Keep steps in order"></button></div>
   </section>`;
   h+=`<section class="card"><div class="card-h"><h2>Review</h2></div>
-   ${num('yreps','Yesterday’s repetitions','Times from memory, the day after',1,50)}
+   <div class="field full"><div class="fl"><b>Daily repetitions after memorizing</b><span>One number per day, from memory, before connection. The last day counts as connection day 1.</span></div><input type="text" id="set-ladder" data-set="ladder" value="${esc((st.ladder||[10,5]).join(', '))}" placeholder="10, 5" inputmode="numeric"></div>
+   ${num('partReps','After each part','Next-day repetitions for half a page or a few lines',1,100)}
    ${num('connTarget','Connection recitations','Days a page is recited before revision',1,60)}
    ${num('cycle','Revision cycle','Days to get through all old pages',1,60)}
    ${num('weakL1','Shaky pages','Clean recitations to clear',1,200)}
@@ -715,7 +724,7 @@ function widgetDays(){
     const sub=p&&!(s.rest&&!tp.done)?(tp.lines?(tp.lines[0]===tp.lines[1]?'Line ':'Lines ')+tp.lines[0]+(tp.lines[0]===tp.lines[1]?'':'–'+tp.lines[1])+' · ':'')+surahProgress(p,tp.keys&&tp.keys[0]).replace(/^Surahs? /,''):'Review only';
     const rows=[
       {tab:'memorize',label:'New page',done:s.newState!=='todo',detail:tp.done?'Done':s.rest?'Rest day':i===0?(s.newFrac>=1?'mark done':Math.round(s.newFrac*100)+'%'):'To do'},
-      {tab:'memorize',label:'Yesterday',done:s.yDone,detail:!s.yNeed?'—':s.yDone?'Done':s.yCount+'/'+s.yT},
+      {tab:'memorize',label:'Recent pages',done:s.yDone,detail:!s.yNeed?'—':s.yDone?'Done':s.yCount+'/'+s.yT},
       {tab:'connection',label:'Connection',done:s.cDone===s.cTotal,detail:s.cTotal?s.cDone+'/'+s.cTotal:'—'},
       {tab:'revision',label:'Revision',done:s.rDone,detail:!s.rNeed?'—':s.rDone?(lastRevPart(P,k)?'part '+lastRevPart(P,k).replace(' of ','/'):'Done'):(P.owed.length>1?P.owed.length+' parts due · ':'')+s.rChk+'/'+P.portion.length}];
     out.push({date:k,page,sub,rows,allDone:s.allDone,weak:wk});d.setDate(d.getDate()+1)}
@@ -765,9 +774,12 @@ function act(a,d){
     case 'aheadMemOpen':ui.aheadMem=true;ui.openStep={};render();return;
     case 'aheadMemClose':ui.aheadMem=false;ui.openStep={};render();return;
     case 'complete':{const tp=workTarget();if(tp.done||!tp.pages.length)return;ui.aheadMem=false;const L={n:S.lessons.length+1,pages:tp.pages.slice(),date:tp.date,at:Date.now()};if(tp.keys&&tp.keys.length)L.keys=tp.keys.slice();if(tp.lines)L.lines=tp.lines.slice();S.lessons.push(L);S.lessons.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.n-b.n));break}
-    case 'ySplitTog':{const P=plan();if(!P.yl)return;P.yl.split=!joinSplit(P.yl);break}
-    case 'y':{const lg=log(),P=plan();const l=P.yQueue[0];if(!l)return;const yt=yTarget(l);if(!lg.yc)lg.yc={};lg.yc[l.n]=Math.min(yt,(lg.yc[l.n]||0)+1);if(lg.yc[l.n]>=yt)l.yDate=t;buzz();keepAwake();break}
-    case 'yUndo':{const lg=log(),P=plan();if(!lg.yc)lg.yc={};let l=P.yQueue[0];if(!l||!(lg.yc[l.n]>0)){const dt=P.yl&&P.yl.yDate===t?P.yl:null;if(dt)l=dt}if(!l)return;lg.yc[l.n]=Math.max(0,(lg.yc[l.n]||yTarget(l))-1);if(l.yDate===t&&lg.yc[l.n]<yTarget(l))delete l.yDate;break}
+    case 'ySplitTog':{const l=S.lessons.find(q=>String(q.n)===String(d.n));if(!l)return;l.split=!joinSplit(l);break}
+    case 'y':{const l=S.lessons.find(q=>String(q.n)===String(d.n));if(!l||ladderComplete(l)||l.sd===t||l.date>=t)return;const lg=log();if(!lg.yc)lg.yc={};const yt=yTarget(l);lg.yc[l.n]=Math.min(yt,(lg.yc[l.n]||0)+1);
+      if(lg.yc[l.n]>=yt){l.psd=l.sd||null;l.st=stDone(l)+1;l.sd=t;if(ladderComplete(l)&&!isPartLesson(l)){S.cc[l.n]=(S.cc[l.n]||0)+1;l.ccAdded=1}}buzz();keepAwake();break}
+    case 'yUndo':{const l=S.lessons.find(q=>String(q.n)===String(d.n));if(!l)return;const lg=log();if(!lg.yc)lg.yc={};
+      if(l.sd===t){const tg=(ladderOf(l)[Math.max(0,stDone(l)-1)])||1;if(l.ccAdded){S.cc[l.n]=Math.max(0,(S.cc[l.n]||0)-1);delete l.ccAdded}l.st=Math.max(0,stDone(l)-1);l.sd=l.psd||null;delete l.psd;lg.yc[l.n]=tg-1;break}
+      lg.yc[l.n]=Math.max(0,(lg.yc[l.n]||0)-1);break}
     case 'connMiss':{const P=plan();const l=P.conn.find(q=>String(q.n)===String(d.n));if(!l)return;const days=connMissed(l,t);if(!days.length)return;const g=log(days[0]);g.conn[l.n]=1;S.cc[l.n]=(S.cc[l.n]||0)+1;break}
     case 'connA':{const lg=log(d.d),n=d.n;if(lg.conn[n]){delete lg.conn[n];S.cc[n]=Math.max(0,(S.cc[n]||0)-1)}else{lg.conn[n]=1;S.cc[n]=(S.cc[n]||0)+1}break}
     case 'connAllA':{const lg=log(d.d),P=plan(d.d);const all=P.conn.every(l=>lg.conn[l.n]);P.conn.forEach(l=>{const n=l.n;if(all){if(lg.conn[n]){delete lg.conn[n];S.cc[n]=Math.max(0,(S.cc[n]||0)-1)}}else if(!lg.conn[n]){lg.conn[n]=1;S.cc[n]=(S.cc[n]||0)+1}});break}
@@ -831,11 +843,12 @@ document.addEventListener('change',e=>{
   const wn=e.target.closest('[data-wknote]');if(wn){const w=S.wk[wn.dataset.wknote];if(w){w.note=wn.value.trim().slice(0,200);save()}return}
   const sc=e.target.closest('[data-stepcount]');if(sc){const z=S.settings.steps.find(q=>q.id===sc.dataset.stepcount);if(z){let v=parseInt(sc.value,10);z.count=isNaN(v)?1:Math.max(1,Math.min(500,v))}refreshDone();save();render();return}
   const el=e.target.closest('[data-set]');if(!el)return;
+  if(el.dataset.set==='ladder'){const v=el.value.split(/[^0-9]+/).map(x=>parseInt(x,10)).filter(x=>x>=1&&x<=200).slice(0,6);S.settings.ladder=v.length?v:[10,5];refreshDone();save();render();return}
   if(el.dataset.set==='ppd'){S.settings.ppd=normAmt(el.value);refreshDone();save();render();return}const k=el.dataset.set,st=S.settings;
   if(k==='prior')st.prior=el.value.trim();
   else if(k==='order')st.order=['surah','forward','backward'].includes(el.value)?el.value:'surah';
   else{if(k==='priorTo')st.priorPart=0;
-  const lim={dayStart:[0,6],joinReps:[0,200],weakClear:[1,60],weakL1:[1,200],weakL2:[1,200],weakL3:[1,200],priorConn:[0,604],priorTo:[0,114],priorPart:[0,300],ppd:[1,5],listen:[1,10],rec:[1,10],reps:[1,200],yreps:[1,50],connTarget:[1,60],cycle:[1,60]}[k];let v=parseInt(el.value,10);if(isNaN(v))v=DEF[k];v=Math.max(lim[0],Math.min(lim[1],v));if(k==='priorConn')v=Math.min(v,priorSet().size);st[k]=v}
+  const lim={partReps:[1,100],dayStart:[0,6],joinReps:[0,200],weakClear:[1,60],weakL1:[1,200],weakL2:[1,200],weakL3:[1,200],priorConn:[0,604],priorTo:[0,114],priorPart:[0,300],ppd:[1,5],listen:[1,10],rec:[1,10],reps:[1,200],yreps:[1,50],connTarget:[1,60],cycle:[1,60]}[k];let v=parseInt(el.value,10);if(isNaN(v))v=DEF[k];v=Math.max(lim[0],Math.min(lim[1],v));if(k==='priorConn')v=Math.min(v,priorSet().size);st[k]=v}
   refreshDone();save();render();
 });
 const TABS=['today','memorize','connection','revision','progress'];
