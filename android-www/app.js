@@ -32,7 +32,7 @@ function range(pages){if(!pages.length)return'';const a=[...pages].sort((x,y)=>x
 const STEP_DEF=[{id:"listen",on:true,req:true,count:3},{id:"tafsir",on:true,req:true,count:1},{id:"memo",on:true,req:true,count:1},{id:"rec",on:true,req:true,count:3},{id:"reps",on:true,req:true,count:40}];
 const STEP_SHORT={listen:"Listen",tafsir:"Tafsir",memo:"Memorize",rec:"Record",reps:"Repeat"};
 const STEP_NAMES={listen:"Listen to a reciter",tafsir:"Read the tafsir",memo:"Memorize the page",rec:"Record clean recitations",reps:"Repeat from memory"};
-const DEF={ladder:[10,5],partReps:10,dayStart:3,joinReps:30,weakClear:20,weakL1:10,weakL2:20,weakL3:40,weakStep:true,priorConn:0,inOrder:true,steps:STEP_DEF.map(x=>({...x})),priorTo:0,priorPart:0,order:"surah",startPage:604,dir:-1,ppd:'1',listen:3,rec:3,reps:40,yreps:5,connTarget:10,cycle:6,rest:[],prior:""};
+const DEF={ladder:[10,5],partReps:10,dayStart:3,joinReps:30,weakClear:20,weakL1:10,weakL2:20,weakL3:40,priorConn:0,steps:STEP_DEF.map(x=>({...x})),priorTo:0,priorPart:0,order:"surah",startPage:604,dir:-1,ppd:'1',listen:3,rec:3,reps:40,yreps:5,connTarget:10,cycle:6,rest:[],prior:""};
 const LS='tikrar-tracker-v1';
 const CLIENT=Math.random().toString(36).slice(2);
 function fresh(){return{v:1,setup:false,settings:{...DEF},lessons:[],logs:{},done:{},revCursor:0,weak:{},miss:{},cc:{},pp:{},wk:{},wkNo:{},recovered:[],revLog:{},revStack:[],revExtra:{},revNum:{},revTicks:{},round:null,updated:0}}
@@ -54,7 +54,7 @@ function appNow(){return new Date(Date.now()-dayStartH()*3600e3)}
 function dk(d=appNow()){const z=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())}
 const TODAY=()=>dk();
 function fromKey(k){return new Date(k+'T12:00:00')}
-function isRest(k){return S.settings.rest.includes(fromKey(k).getDay())&&!(S.logs[k]&&S.logs[k].work)}
+function isRest(k){return false}
 function normAmt(v){const ok=['1L','2L','3L','4L','5L','6L','half','1','2','3'];if(v===0.5||v==='0.5')return'half';v=String(v);return ok.includes(v)?v:'1'}
 function amtPages(k){return /L$/.test(k)?parseInt(k)/15:k==='half'?0.5:parseInt(k)}
 function amtLabel(k){return /L$/.test(k)?(parseInt(k)===1?'1 line':parseInt(k)+' lines'):k==='half'?'½ page':(k==='1'?'1 page':k+' pages')}
@@ -128,11 +128,6 @@ function recentPrior(){const st=S.settings,N=Math.max(0,st.priorConn|0);if(!N)re
   const pr=priorItems();const ps=[];seqItems().forEach(x=>{if(pr.has(x.k)&&!ps.includes(x.p))ps.push(x.p)});const lp=new Set();S.lessons.forEach(l=>l.pages.forEach(q=>lp.add(q)));return ps.slice(-N).filter(q=>!lp.has(q))}
 function ccBefore(key,lg){return (S.cc[key]||0)-(lg&&lg.conn&&lg.conn[key]?1:0)}
 function appStart(){let m=null;S.lessons.forEach(l=>{if(!m||l.date<m)m=l.date});Object.keys(S.logs).forEach(k=>{if(!m||k<m)m=k});return m||TODAY()}
-function connMissed(l,t){const tgt=Math.max(1,S.settings.connTarget|0);const lgT=S.logs[t]||{conn:{}};
-  const left=tgt-(S.cc[l.n]||0)-((lgT.conn&&lgT.conn[l.n])?0:1);if(left<=0)return[];
-  let from;if(l.virtual)from=appStart();else{const d=fromKey(l.sd||l.date);d.setDate(d.getDate()+1);from=dk(d)}
-  const out=[];const d=fromKey(from);while(dk(d)<t){const k=dk(d),g=S.logs[k];if(!(g&&g.conn&&g.conn[l.n]))out.push(k);d.setDate(d.getDate()+1)}
-  return out.slice(0,left)}
 function completesPage(l){return !!(l.lines&&l.lines[0]>1&&l.lines[1]>=PL(l.pages[0]))}
 function supersededPart(l){if(!l.lines||l.lines[1]>=PL(l.pages[0])||l.virtual)return false;const it=lessonItem(l);return S.lessons.some(j=>j!==l&&completesPage(j)&&lessonItem(j)===it&&j.date>=l.date)}
 function connLabel(l){if(!completesPage(l))return lessonLabel(l);const it=lessonItem(l);return range(l.pages)+(it&&itemShared(it)?` (${surahName(it.ss[0])} part)`:'')}
@@ -170,8 +165,8 @@ function lastRevPart(P,t){const ex=S.revExtra[t]||[];const e=ex.length?ex[ex.len
 function stepState(p,st){const x=S.pp[pkey(p)]||{};const tp=workTarget();
   const list=st.steps.filter(z=>z.on);
   return list.map(z=>{const c=Math.max(1,z.count|0),v=Math.min(getCount(x,z.id),c);return{...z,count:c,val:v,frac:v/c,done:v>=c}})}
-function pageReady(p){return stepState(p,S.settings).every(z=>!z.req||z.done)}
-function pageFrac(p){const ss=stepState(p,S.settings).filter(z=>z.req);if(!ss.length)return 0;return ss.reduce((a,z)=>a+z.frac*(z.id==='reps'?2:1),0)/ss.reduce((a,z)=>a+(z.id==='reps'?2:1),0)}
+function pageReady(p){return stepState(p,S.settings).every(z=>z.done)}
+function pageFrac(p){const ss=stepState(p,S.settings);if(!ss.length)return 0;return ss.reduce((a,z)=>a+z.frac*(z.id==='reps'?2:1),0)/ss.reduce((a,z)=>a+(z.id==='reps'?2:1),0)}
 function status(t=TODAY()){
   const lg=t===TODAY()?log(t):(S.logs[t]||{pages:{},conn:{},revChk:{},y:0}),st=S.settings,P=plan(t),tp=lessonFor(t),rest=isRest(t);
   const newState=tp.done?'done':(rest?'rest':(tp.finished?'done':'todo'));
@@ -193,9 +188,9 @@ function streak(){
 }
 function projection(){
   const st=S.settings;let rem=TOTAL-memorizedSet().size;if(rem<=0)return'Complete';
-  if(st.rest.length>=7)return'—';
+  
   const d=appNow();if(todaysPages().done)d.setDate(d.getDate()+1);
-  let g=0;while(g<6000){if(!st.rest.includes(d.getDay())){rem-=amtPages(st.ppd);if(rem<=0)break}d.setDate(d.getDate()+1);g++}
+  let g=0;while(g<6000){{rem-=amtPages(st.ppd);if(rem<=0)break}d.setDate(d.getDate()+1);g++}
   return fmt(d,{month:'short',year:'numeric'});
 }
 
@@ -273,7 +268,7 @@ function vToday(){
   let h='';
   const pg=s.tp.pages;
   if(s.locked&&!s.tp.done)h+=`<div class="card" style="border-color:var(--gold);background:var(--gold-soft)"><b>New memorization is locked</b><div class="small" style="color:var(--ink)">Finish ${lateStages(s)} earlier repetition${lateStages(s)>1?'s':''} in Recent memorization to unlock the next lesson.</div></div>`;
-  h+=`<button class="hero" data-act="tab" data-v="progress" aria-label="Open progress" style="border:0;text-align:left;width:100%;font:inherit"><div><div class="label">${s.tp.done?'Memorized today':s.rest?'Rest day':'Today’s page'}${s.tp.lines?' · '+linesTxt(s.tp.lines):''}</div><div class="pg num">${pg.length?(pg.length>1?range(pg):'p. '+pg[0]):'—'}</div><div class="sub">${pg.length?esc(surahProgress(pg[0],s.tp.keys&&s.tp.keys[0])+' · Juz '+juzOf(pg[0])):s.tp.finished?'All 604 pages memorized':''}</div></div><div class="day">Lesson ${s.tp.done?s.tp.lesson.n:S.lessons.length+1}<br><span class="small">${memorizedSet().size} / ${TOTAL}</span></div></button>`;
+  h+=`<button class="hero" data-act="tab" data-v="progress" aria-label="Open progress" style="border:0;text-align:left;width:100%;font:inherit"><div><div class="label">${s.tp.done?'Memorized today':s.rest?'Rest day':'Today’s page'}${s.tp.lines?' · '+linesTxt(s.tp.lines):''}</div><div class="pg num">${pg.length?(pg.length>1?range(pg):'p. '+pg[0]):'—'}</div><div class="sub">${pg.length?esc(surahProgress(pg[0],s.tp.keys&&s.tp.keys[0])+' · Juz '+juzOf(pg[0])):s.tp.finished?'All 604 pages memorized':''}</div></div><div class="day"><span class="small">${memorizedSet().size} / ${TOTAL}</span><br><span class="small" style="opacity:.8">Progress ›</span></div></button>`;
 
   h+=`<div class="tasks">
    ${taskRow('memorize','New memorization',s.rest&&!s.tp.done?'Rest day — no new page':(s.tp.done?'Done · page '+lessonLabel(s.tp.lesson):s.tp.finished?'All 604 pages memorized':s.locked?'Locked · finish recent memorization first':stepSummary()),s.newState,s.newFrac,s.newState==='done'?chipFor('done','Done'):s.newState==='rest'?chipFor('rest','Rest'):chipFor(s.newFrac>0?'prog':'',Math.round(s.newFrac*100)+'%'))}
@@ -299,8 +294,6 @@ function vMemorize(){
     }
   }else if(s.tp.finished){
     h+=`<section class="card"><h2>All 604 pages memorized</h2><p class="muted">Keep up connection and revision. The program’s mastery course (3–4 pages a day) is the next step.</p></section>`;
-  }else if(s.rest){
-    h+=`<section class="card"><div class="card-h"><h2>Rest day</h2>${chipFor('rest','No new page')}</div><p class="muted" style="margin:0">Today is set as a rest day for new memorization. Connection and revision still count. Change rest days in Settings.</p><div class="row"><button class="btn" data-act="workRest">Memorize today anyway</button></div></section>`;
   }else if(s.locked){
     h+=`<section class="card"><div class="card-h"><h2>New memorization</h2>${chipFor('rest','Locked')}</div><p class="muted" style="margin:0">Next: p. ${lessonLabel({pages:s.tp.pages,lines:s.tp.lines,keys:s.tp.keys})}. Finish the repetitions marked “due first” in Recent to unlock it.</p><div class="row"><button class="btn pri" data-act="tab" data-v="recent">Go to Recent</button></div></section>`;
   }else{
@@ -322,7 +315,7 @@ function vRecent(){
 }
 function workBlock(w,st){
   const per=dayPpd(w.date);const ab=k=>`<button class="${per===k?'on':''}" data-act="dayPpd" data-v="${k}" aria-pressed="${per===k}">${k==='half'?'½':parseInt(k)}</button>`;
-  let h=`<div class="amt"><div class="seg-wrap"><span class="small muted">Lines</span><div class="seg" role="group" aria-label="Lines">${['1L','2L','3L','4L','5L','6L'].map(ab).join('')}</div></div><div class="seg-wrap"><span class="small muted">Pages</span><div class="seg" role="group" aria-label="Pages">${['half','1','2','3'].map(ab).join('')}</div></div><p class="small muted" style="margin:0">${w.ahead?esc(cap(dayName(w.date))):'Today'}: ${amtLabel(per)}${per!==st.ppd?' · usually '+amtLabel(st.ppd):''}${w.cont?` · continuing p. ${w.pages[0]} from line ${w.lines[0]}`:''}</p></div>`;
+  let h=`<div class="seg-wrap"><span class="small muted">${w.ahead?esc(cap(dayName(w.date))):'Today'}’s amount${w.cont?` · continuing p. ${w.pages[0]} from line ${w.lines[0]}`:''}</span><select id="day-amt" data-dayamt="1">${['1L','2L','3L','4L','5L','6L','half','1','2','3'].map(k=>`<option value="${k}" ${per===k?'selected':''}>${amtLabel(k)}${k===st.ppd?' (usual)':''}</option>`).join('')}</select></div>`;
   w.pages.forEach(p=>{h+=pageCard(p,st,w.lines)});
   const ready=w.pages.length&&w.pages.every(pageReady);const what=w.lines?`${linesTxt(w.lines)} of p. ${w.pages[0]}`:'page '+range(w.pages);
   return h+`<button class="btn pri block" data-act="complete" ${ready?'':'disabled'}>${ready?`Mark ${what} as memorized${w.ahead?' for '+esc(dayName(w.date)):''}`:'Finish the required steps to complete'}</button>`;
@@ -340,8 +333,8 @@ function pageCard(p,st,ln){
   const cur=ss.findIndex(z=>!z.done)+1;const open=ui.openStep[p]!=null?ui.openStep[p]:cur;
   let blocked=false;
   const body=ss.map((z,k)=>{
-    const i=k+1,locked=st.inOrder&&blocked,ok=z.done,c=z.count,v=z.val,dis=locked||ok?'disabled':'';
-    if(z.req&&!z.done)blocked=true;
+    const i=k+1,locked=blocked,ok=z.done,c=z.count,v=z.val,dis=locked||ok?'disabled':'';
+    if(!z.done)blocked=true;
     const col=i===open?'':`collapsed" data-act="openStep" data-p="${p}" data-i="${i}`;
     const at=`data-p="${p}" data-id="${z.id}"`;
     let title,note='';
@@ -364,7 +357,6 @@ function pageCard(p,st,ln){
     else if(c===1)ctl=`<div class="row"><button class="check ${v?'on':''}" data-act="tog" ${at} ${locked?'disabled':''}><span class="box">✓</span>${z.id==='memo'?'I’ve memorized it':'Done'}</button></div>`;
     else if(c<=10&&z.id!=='reps')ctl=`<div class="row"><div class="dots">${Array.from({length:c},(_,q)=>`<button class="dot ${q<v?'on':''}" data-act="dot" ${at} data-i="${q+1}" ${locked?'disabled':''} aria-label="${q+1}">${q+1}</button>`).join('')}</div></div>`;
     else ctl=`<div class="counter">${locked?ring(0,c,'noop','disabled'):ring(v,c,'inc',at)}<div class="ctrls"><button class="btn pri" data-act="inc" ${at} ${dis}>+1${z.id==='reps'?' clean':''}</button><button class="btn" data-act="dec" ${at} ${v>0?'':'disabled'}>Undo</button></div></div>`;
-    if(!z.req)note=(note?note+' ':'')+'<em>Optional.</em>';
     return `<div class="step ${ok?'ok':''} ${locked?'locked':''} ${col}"><span class="n">${ok?'✓':i}</span><div><div class="h">${title}</div>${note?`<div class="note">${note}</div>`:''}${ctl}</div></div>`;
   }).join('');
   return `<section class="card"><div class="card-h"><div><div class="label">New page${ln?' · '+linesTxt(ln):''}</div><h2>Page ${p}</h2></div><span class="small muted">${esc(surahProgress(p,it&&it.k))}</span></div>${itemShared(it)?`<p class="small muted" style="margin:-4px 0 8px">This page holds ${esc(onPage(p).map(surahName).join(', '))}. Memorize only the ${esc(itemName(it))} part today.</p>`:''}
@@ -375,7 +367,7 @@ function stepSummary(){const st=S.settings;return st.steps.filter(z=>z.on).map(z
 function vConnection(){
   const s=status(),P=s.P,st=s.st,lg=s.lg,t=s.t;
   let h=`<h2 style="font-size:22px">Connection</h2><p class="muted" style="margin:-6px 0 0">Pages that have finished recent memorization. Recite each once a day from memory. After ${P.tgt} days it moves to long revision. If you miss a day, it simply waits.</p>`;
-  h+=`<div class="stats"><div class="stat"><b class="num">${P.conn.length}</b><span>in connection</span></div><div class="stat"><b class="num">${s.cDone}/${P.conn.length}</b><span>done today</span></div><div class="stat"><b class="num">${P.graduating}</b><span>move to revision tomorrow</span></div></div>`;
+  if(P.conn.length)h+=`<p class="small" style="margin:0"><b>${P.conn.length} page${P.conn.length>1?'s':''}</b> · ${s.cDone}/${P.conn.length} done today${P.graduating?` · ${P.graduating} finish${P.graduating>1?'':'es'} connection today`:''}</p>`;
   const missOf={};s.cMiss.forEach(x=>missOf[x.l.n]=x.days.length);
   if(s.cOwed)h+=`<div class="card" style="border-color:var(--gold);background:var(--gold-soft)"><b>${s.cOwed} missed recitation${s.cOwed>1?'s':''}</b><div class="small" style="color:var(--ink)">Pages marked “+ missed” were due on days you didn’t do connection. Tap that button once per missed day, as well as today’s tick.</div></div>`;
   if(!P.conn.length){h+=`<div class="empty">${P.recent.length?'Your newest pages are still in Recent memorization. They join Connection after that.':'Connection starts once you’ve memorized a couple of pages.'}</div>`;return h}
@@ -404,7 +396,7 @@ function vWeak(){
   const list=weakList();
   let h=`<section class="card" id="weak"><div class="card-h"><div><div class="label">Any time · no schedule</div><h2>Weak pages</h2></div><span class="small muted num">${list.length}</span></div>`;
   if(!list.length)return h+`<div class="empty">Use the ⋯ button on any page to mark it Shaky, Weak or Very weak.</div></section>`;
-  h+=`<p class="small muted" style="margin:-4px 0 6px">Tap Clean after each clean recitation from memory. ${S.settings.weakStep?'When a page reaches its count it drops a level, then comes off the list.':'When a page reaches its count it comes off the list.'}</p><div class="list">${list.map(w=>{const p=w.p,need=wkNeed(w.level),c=Math.min(w.clean||0,need);
+  h+=`<p class="small muted" style="margin:-4px 0 6px">Tap Clean after each clean recitation from memory. When a page reaches its count it drops a level, then comes off the list.</p><div class="list">${list.map(w=>{const p=w.p,need=wkNeed(w.level),c=Math.min(w.clean||0,need);
     return `<div class="li wkrow"><div class="m"><b>Page ${p}</b> ${wkTag(w.level)}<div>${esc(surahOf(p))} <span class="wkbar" aria-hidden="true"><b style="width:${Math.round(c/need*100)}%"></b></span><span class="num">${c}/${need}</span></div></div><div class="wkb"><button class="btn pri" data-act="wkClean" data-p="${p}">Clean</button><button class="btn" data-act="wkUndo" data-p="${p}" ${(w.clean||0)>0||w.prevLevel?'':'disabled'}>Undo</button><button class="mini" data-act="menu" data-p="${p}" aria-label="Change level">⋯</button></div>${ui.menu===p?`<div class="wkmenu">${flagChoices(p)}</div>`:''}</div>`}).join('')}</div>`;
   return h+'</section>';
 }
@@ -417,10 +409,10 @@ function vRevision(){
   const top=S.revStack[S.revStack.length-1];const canUndo=top&&(top.date>=t||top.doneOn===t);
   const row=(p,on,act,dis)=>`<div class="li"><button class="cb ${on?'on':''}" data-act="${act}" data-p="${p}" ${dis?'disabled':''} aria-label="Mark page ${p} recited">✓</button><div class="m"><b>Page ${p}</b><div>${esc(pageMeta(p))}</div></div><span class="rowend">${flagMenu(p)}</span>${menuRow([p])}</div>`;
   if(s.rDone){const ex=S.revExtra[t]||[];const lastEx=ex.length?ex[ex.length-1]:null;const lp=lastEx?(lastEx.pages||lastEx):(S.revLog[t]||[]);
-    h+=`<section class="card"><div class="card-h"><div><div class="label">Revision</div><h2>Completed part ${lastRevPart(P,t)||''}</h2><div class="small muted">Pages ${range(lp)}</div></div>${chipFor('done','Done')}</div>`;
+    h+=`<section class="card"><div class="card-h"><div><div class="label">Revision</div><h2>Completed part ${lastRevPart(P,t)||''}</h2><div class="small muted">Pages ${range(lp)} · ${P.R.done} of ${P.nParts} parts done this round</div></div>${chipFor('done','Done')}</div>`;
   }else{
     const late=P.owed.length>1;
-    h+=`<section class="card"><div class="card-h"><div><div class="label">${late?`Catching up · ${P.owed.length} parts due`:'Today'} · ${P.portion.length} page${P.portion.length>1?'s':''}</div><h2>Part ${P.partNo} of ${P.nParts}</h2><div class="small muted">Pages ${range(P.portion)}</div></div>${chipFor(s.rChk?'prog':'',s.rChk+'/'+P.portion.length)}</div>`;
+    h+=`<section class="card"><div class="card-h"><div><div class="label">${late?`Catching up · ${P.owed.length} parts due`:'Today'} · ${P.portion.length} page${P.portion.length>1?'s':''}</div><h2>Part ${P.partNo} of ${P.nParts}</h2><div class="small muted">Pages ${range(P.portion)} · ${P.R.done} of ${P.nParts} parts done this round</div></div>${chipFor(s.rChk?'prog':'',s.rChk+'/'+P.portion.length)}</div>`;
     if(late)h+=`<p class="small muted" style="margin:-4px 0 8px">You missed ${P.owed.length-1===1?'a day':(P.owed.length-1)+' days'} of revision. Finish this part, then the next one comes up for today. Revision stays due until it’s done.</p>`;
     h+=`<div class="row" style="margin:-2px 0 4px"><button class="btn" data-act="revAll">${P.portion.every(p=>S.revTicks[p])?'Clear all':'Mark all done'}</button></div><div class="list">${P.portion.map(p=>row(p,!!S.revTicks[p],'revChk',false)).join('')}</div>`;
   }
@@ -432,7 +424,6 @@ function vRevision(){
       :`<div class="row" style="margin-top:0"><button class="btn" data-act="revAheadOpen">Do ${esc(nm)} now · ${P.ahead.length} pages</button></div>`;
     h+='</section>';
   }
-  h+=`<section class="card"><div class="card-h"><h2>This round</h2><span class="small muted num">${P.R.done} of ${P.nParts} parts</span></div><div class="task" style="padding:0;border:0;grid-template-columns:1fr"><span class="bar" style="margin:0"><b style="width:${Math.round(P.R.done/P.nParts*100)}%"></b></span></div><p class="small muted" style="margin:10px 0 0">${P.roundDone} of ${P.roundPages} pages. ${P.partsLeft?`${P.partsLeft} part${P.partsLeft>1?'s':''} left in this round.`:'Round complete.'} Parts stay the same for the whole round. Pages that finish connection mid-round join the next round.</p></section>`;
   return h+vWeak();
 }
 function vProgress(){
@@ -446,7 +437,7 @@ function vProgress(){
   const wl=weakList();
   h+=`<section class="card"><div class="card-h"><h2>Weak pages</h2><button class="btn" data-act="goWeak">Open</button></div><p class="small muted" style="margin:0">${wl.length?[3,2,1].map(l=>{const n=wl.filter(w=>w.level===l).length;return n?n+' '+WK_NAMES[l].toLowerCase():''}).filter(Boolean).join(' · '):'None flagged'}</p></section>`;
   const recent=S.lessons.slice(-10).reverse();
-  h+=`<section class="card"><div class="card-h"><h2>Recent lessons</h2>${S.lessons.length?`<button class="btn" data-act="undoLesson">Undo last lesson</button>`:''}</div>${ui.confirmUndo?`<div class="confirm">Remove lesson ${S.lessons[S.lessons.length-1].n} (page ${lessonLabel(S.lessons[S.lessons.length-1])})? Its page becomes today’s page again.<div class="row"><button class="btn warn" data-act="undoYes">Remove lesson</button><button class="btn" data-act="undoNo">Keep it</button></div></div>`:''}${recent.length?`<div class="list">${recent.map(l=>`<div class="li"><span class="chip num">#${l.n}</span><div class="m"><b>Page ${connLabel(l)}</b><div>${esc(pageMeta(l.pages[0]))}</div></div><span class="small muted">${fmt(fromKey(l.date),{month:'short',day:'numeric'})}</span></div>`).join('')}</div>`:'<div class="empty">Lessons you complete appear here.</div>'}</section>`;
+  h+=`<section class="card"><div class="card-h"><h2>Recent lessons</h2>${S.lessons.length?`<button class="btn" data-act="undoLesson">Undo last lesson</button>`:''}</div>${ui.confirmUndo?`<div class="confirm">Remove your last lesson (page ${lessonLabel(S.lessons[S.lessons.length-1])})? Its page becomes today’s page again.<div class="row"><button class="btn warn" data-act="undoYes">Remove lesson</button><button class="btn" data-act="undoNo">Keep it</button></div></div>`:''}${recent.length?`<div class="list">${recent.map(l=>`<div class="li"><div class="m"><b>Page ${connLabel(l)}</b><div>${esc(pageMeta(l.pages[0]))}</div></div><span class="small muted">${fmt(fromKey(l.date),{month:'short',day:'numeric'})}</span></div>`).join('')}</div>`:'<div class="empty">Lessons you complete appear here.</div>'}</section>`;
   return h;
 }
 function priorFields(st){
@@ -467,14 +458,12 @@ function vSettings(){
   h+=`<section class="card"><div class="card-h"><h2>Plan</h2><span class="small muted">An-Nas → Al-Fatihah</span></div>
    <details class="setup"><summary>Initial setup</summary>${priorFields(st)}</details>
    <div class="field"><div class="fl"><b>Usual amount per day</b><span>${(m=>m>=12?'About '+Math.floor(m/12)+' yr'+(m%12?' '+(m%12)+' mo':''):'About '+m+' months')(Math.round(604/amtPages(st.ppd)/30.4))} for the whole Quran</span></div><select id="set-ppd" data-set="ppd">${['1L','2L','3L','4L','5L','6L','half','1','2','3'].map(k=>`<option value="${k}" ${st.ppd===k?'selected':''}>${amtLabel(k)}</option>`).join('')}</select></div>
-   <div class="field full"><div class="fl"><b>Rest days</b><span>No new page; review continues</span></div><div class="days">${D.map((d,i)=>`<button data-act="restDay" data-i="${i}" class="${st.rest.includes(i)?'on':''}" aria-pressed="${st.rest.includes(i)}">${d}</button>`).join('')}</div></div>
    <div class="field"><div class="fl"><b>New day starts at</b><span>Work done before this time counts for the previous day</span></div><select id="set-dayStart" data-set="dayStart">${[0,1,2,3,4,5,6].map(h=>`<option value="${h}" ${dayStartH()===h?'selected':''}>${h===0?'Midnight':h+':00 am'}</option>`).join('')}</select></div>
   </section>`;
   h+=`<section class="card"><div class="card-h"><h2>New memorization</h2></div><p class="small muted" style="margin:0 0 6px">The steps for each new lesson. Set × to 1 for a checkbox, or higher for a counter.</p>
-   <div class="slist">${st.steps.map((z,k)=>`<div class="srow ${z.on?'':'off'}"><button class="sw ${z.on?'on':''}" data-act="stepOn" data-id="${z.id}" aria-pressed="${z.on}" aria-label="${z.on?'Turn off':'Turn on'} step"></button><input type="text" id="step-${z.id}" data-step-label="${z.id}" value="${esc(z.label||STEP_NAMES[z.id]||'')}" aria-label="Step name"><div class="sbtns"><label class="cnt">×<input type="number" id="cnt-${z.id}" data-stepcount="${z.id}" min="1" max="500" value="${z.count}" inputmode="numeric" aria-label="How many times"></label><button class="flag ${z.req?'on':''}" data-act="stepReq" data-id="${z.id}" ${z.on?'':'disabled'}>${z.req?'Required':'Optional'}</button><button class="mini" data-act="stepMove" data-id="${z.id}" data-dir="-1" ${k?'':'disabled'} aria-label="Move up">↑</button><button class="mini" data-act="stepMove" data-id="${z.id}" data-dir="1" ${k<st.steps.length-1?'':'disabled'} aria-label="Move down">↓</button>${z.custom?`<button class="mini" data-act="stepDel" data-id="${z.id}" aria-label="Remove step">✕</button>`:''}</div></div>`).join('')}</div>
+   <div class="slist">${st.steps.map((z,k)=>`<div class="srow ${z.on?'':'off'}"><button class="sw ${z.on?'on':''}" data-act="stepOn" data-id="${z.id}" aria-pressed="${z.on}" aria-label="${z.on?'Turn off':'Turn on'} step"></button><input type="text" id="step-${z.id}" data-step-label="${z.id}" value="${esc(z.label||STEP_NAMES[z.id]||'')}" aria-label="Step name"><div class="sbtns"><label class="cnt">×<input type="number" id="cnt-${z.id}" data-stepcount="${z.id}" min="1" max="500" value="${z.count}" inputmode="numeric" aria-label="How many times"></label><button class="mini" data-act="stepMove" data-id="${z.id}" data-dir="-1" ${k?'':'disabled'} aria-label="Move up">↑</button><button class="mini" data-act="stepMove" data-id="${z.id}" data-dir="1" ${k<st.steps.length-1?'':'disabled'} aria-label="Move down">↓</button>${z.custom?`<button class="mini" data-act="stepDel" data-id="${z.id}" aria-label="Remove step">✕</button>`:''}</div></div>`).join('')}</div>
    <div class="row"><input type="text" id="new-step" placeholder="Add a step, e.g. Recite to my teacher" style="flex:1;min-width:0;padding:9px 11px;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit"><button class="btn" data-act="stepAdd">Add</button></div>
 
-   <div class="field" style="margin-top:8px"><div class="fl"><b>Keep steps in order</b><span>Each step unlocks after the required ones above it</span></div><button class="sw ${st.inOrder?'on':''}" data-act="inOrder" aria-pressed="${st.inOrder}" aria-label="Keep steps in order"></button></div>
   </section>`;
   const lad=st.ladder||[10,5];
   h+=`<section class="card"><div class="card-h"><h2>Recent memorization</h2></div><p class="small muted" style="margin:0 0 6px">Repetitions from memory on the days after a page is memorized. Then it moves to Connection.</p>
@@ -492,7 +481,6 @@ function vSettings(){
    ${num('weakL1','Shaky','',1,200)}
    ${num('weakL2','Weak','',1,200)}
    ${num('weakL3','Very weak','',1,200)}
-   <div class="field"><div class="fl"><b>Step down a level</b><span>Very weak becomes Weak, then Shaky, then clear</span></div><button class="sw ${st.weakStep?'on':''}" data-act="weakStepTog" aria-pressed="${!!st.weakStep}" aria-label="Step down a level"></button></div>
   </section>`;
   h+=`<section class="card"><div class="card-h"><h2>Backup</h2></div>
    <p class="small muted" style="margin:0 0 8px">Save your progress to a file, or restore it here or on another device.</p>
@@ -501,9 +489,7 @@ function vSettings(){
    ${ui.msg?`<p class="small" style="margin:10px 0 0">${esc(ui.msg)}</p>`:''}
   </section>`;
   h+=`<section class="card"><div class="card-h"><h2>Data</h2>${syncHtml()}</div>
-   <div class="row" style="margin-top:0"><button class="btn" data-act="checkData">Check my data</button><button class="btn" data-act="defaults">Restore Tikrar defaults</button>${ui.confirmReset?'':`<button class="btn warn" data-act="reset">Reset all progress</button>`}</div>
-   <p class="small muted" style="margin:8px 0 0">Check my data looks for repeated or overlapping lessons and repetitions left open, and fixes them. Defaults resets the checklist, counts and review settings; your memorized pages and rest days stay.</p>${ui.msg&&ui.tab==='settings'&&/problem/.test(ui.msg)?`<p class="small" style="margin:8px 0 0">${esc(ui.msg)}</p>`:''}
-   ${ui.confirmReset?`<div class="confirm" style="margin-top:10px">Erase all lessons, logs and settings? This can’t be undone.<div class="row"><button class="btn warn" data-act="resetYes">Erase everything</button><button class="btn" data-act="resetNo">Cancel</button></div></div>`:''}
+   ${ui.confirmReset?`<div class="confirm">Choose what to reset. Neither can be undone.<div class="row"><button class="btn" data-act="defaults">Settings only</button><button class="btn warn" data-act="resetYes">Erase everything</button><button class="btn" data-act="resetNo">Cancel</button></div><p class="small" style="margin:8px 0 0">Settings only restores the Tikrar counts and checklist and keeps your pages. Erase everything removes all progress.</p></div>`:`<div class="row" style="margin-top:0"><button class="btn warn" data-act="reset">Reset…</button></div>`}
   </section>`;
   return h;
 }
@@ -526,7 +512,7 @@ function pushWidget(){if(!window.AndroidBridge||!AndroidBridge.updateWidget)retu
 function goBack(){if(ui.tab!=='today'){act('tab',{v:'today'});return'stay'}return'exit'}
 function render(){
   const v={today:vToday,memorize:vMemorize,recent:vRecent,connection:vConnection,revision:vRevision,progress:vProgress,settings:vSettings}[ui.tab]||vToday;
-  document.getElementById('app').innerHTML=header()+`<main class="stack">${v()}</main>`+(ui.tab!=='settings'?`<p class="small muted" style="text-align:center;margin-top:18px">${syncHtml()}</p>`:'');
+  document.getElementById('app').innerHTML=header()+`<main class="stack">${v()}</main>`;
   const s=status();
   const pips={today:!s.allDone,memorize:s.newState==='todo',recent:!s.yDone,connection:s.cDone<s.cTotal,revision:!s.rDone,progress:false};
   const tabs=[['today','Today'],['memorize','New'],['recent','Recent'],['connection','Connection'],['revision','Revision']];
@@ -549,7 +535,6 @@ function act(a,d){
     case 'importPick':{const f=document.getElementById('importFile');if(f){f.value='';f.click()}return}
     case 'importNo':ui.pendingImport=null;render();return;
     case 'importYes':{if(!ui.pendingImport)return;S=normalize(ui.pendingImport.state);ui.pendingImport=null;ui.msg='Backup restored.';ui.openStep={};break}
-    case 'workRest':{log().work=1;break}
     case 'splitTog':{const x=pst(p);const cur=x.split!=null?x.split:surahsOn(p).length>1;x.split=!cur;break}
     case 'inc':{const x=pst(p),z=st.steps.find(q=>q.id===d.id)||(d.id==='join'?{count:st.joinReps}:null);if(!z)return;setCount(x,d.id,Math.min(z.count,getCount(x,d.id)+1));buzz();if(z.count>10)keepAwake();break}
     case 'dec':{const x=pst(p);setCount(x,d.id,getCount(x,d.id)-1);break}
@@ -557,11 +542,9 @@ function act(a,d){
     case 'dot':{const x=pst(p),i=+d.i;setCount(x,d.id,getCount(x,d.id)>=i?i-1:i);break}
     case 'recBad':{const x=pst(p);setCount(x,'rec',0);break}
     case 'stepOn':{const z=st.steps.find(q=>q.id===d.id);if(z)z.on=!z.on;break}
-    case 'stepReq':{const z=st.steps.find(q=>q.id===d.id);if(z)z.req=!z.req;break}
     case 'stepMove':{const k=st.steps.findIndex(q=>q.id===d.id),m=k+(+d.dir);if(k<0||m<0||m>=st.steps.length)return;const t2=st.steps[k];st.steps[k]=st.steps[m];st.steps[m]=t2;break}
     case 'stepDel':st.steps=st.steps.filter(q=>q.id!==d.id);break;
     case 'stepAdd':{const inp=document.getElementById('new-step');const v=(inp&&inp.value||'').trim();if(!v)return;st.steps.push({id:'c'+Date.now().toString(36),custom:true,label:v.slice(0,80),on:true,req:true,count:1});break}
-    case 'inOrder':st.inOrder=!st.inOrder;break;
     case 'aheadMemOpen':ui.aheadMem=true;ui.openStep={};render();return;
     case 'aheadMemClose':ui.aheadMem=false;ui.openStep={};render();return;
     case 'complete':{const tp=workTarget();if(tp.done||!tp.pages.length)return;{const sx=status();if(sx.locked||(tp.ahead&&!sx.yDone))return}ui.aheadMem=false;const L={n:S.lessons.length+1,pages:tp.pages.slice(),date:tp.date,at:Date.now()};if(tp.keys&&tp.keys.length)L.keys=tp.keys.slice();if(tp.lines)L.lines=tp.lines.slice();S.lessons.push(L);S.lessons.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.n-b.n));break}
@@ -573,7 +556,6 @@ function act(a,d){
       lg.yc[x.key]=Math.max(0,(lg.yc[x.key]||0)-1);break}
     case 'ladAdd':{const a=st.ladder||(st.ladder=[10,5]);if(a.length<7)a.push(Math.max(1,Math.ceil(a[a.length-1]/2)));break}
     case 'ladDel':{if(st.ladder&&st.ladder.length>1)st.ladder.pop();break}
-    case 'connMiss':{const P=plan();const l=P.conn.find(q=>String(q.n)===String(d.n));if(!l)return;const days=connMissed(l,t);if(!days.length)return;const g=log(days[0]);g.conn[l.n]=1;S.cc[l.n]=(S.cc[l.n]||0)+1;break}
     case 'connA':{const lg=log(d.d),n=d.n;if(lg.conn[n]){delete lg.conn[n];S.cc[n]=Math.max(0,(S.cc[n]||0)-1)}else{lg.conn[n]=1;S.cc[n]=(S.cc[n]||0)+1}break}
     case 'connAllA':{const lg=log(d.d),P=plan(d.d);const all=P.conn.every(l=>lg.conn[l.n]);P.conn.forEach(l=>{const n=l.n;if(all){if(lg.conn[n]){delete lg.conn[n];S.cc[n]=Math.max(0,(S.cc[n]||0)-1)}}else if(!lg.conn[n]){lg.conn[n]=1;S.cc[n]=(S.cc[n]||0)+1}});break}
     case 'connAheadOpen':ui.aheadConn=true;render();return;
@@ -584,7 +566,7 @@ function act(a,d){
     case 'weakSet':{ui.menu=null;const l=+d.l;if(!l){delete S.wk[p];delete S.weak[p]}else{if(!S.wk[p])S.wk[p]={since:t,reviews:0,clean:0,last:null};if(S.wk[p].level!==l){S.wk[p].level=l;S.wk[p].clean=0;delete S.wk[p].prevLevel}S.weak[p]=1}break}
     case 'weak':ui.menu=null;if(S.wk[p]){delete S.wk[p];delete S.weak[p]}else{S.wk[p]={since:t,reviews:0,clean:0,last:null,level:2};S.weak[p]=1}break;
     case 'wkClean':{const w=S.wk[p];if(!w)return;const lv=wkLevel(w);w.clean=(w.clean||0)+1;w.last=t;w.reviews=(w.reviews||0)+1;buzz();delete w.prevLevel;
-      if(w.clean>=wkNeed(lv)){if(st.weakStep&&lv>1){w.prevLevel={level:lv,clean:w.clean};w.level=lv-1;w.clean=0}else{S.recovered.push({p,since:w.since,cleared:t,reviews:w.reviews});delete S.wk[p];delete S.weak[p]}}break}
+      if(w.clean>=wkNeed(lv)){if(lv>1){w.prevLevel={level:lv,clean:w.clean};w.level=lv-1;w.clean=0}else{S.recovered.push({p,since:w.since,cleared:t,reviews:w.reviews});delete S.wk[p];delete S.weak[p]}}break}
     case 'wkUndo':{const w=S.wk[p];if(!w)return;if(w.prevLevel&&!(w.clean>0)){w.level=w.prevLevel.level;w.clean=w.prevLevel.clean-1;delete w.prevLevel;break}if(!(w.clean>0))return;w.clean--;break}
     case 'goWeak':ui.tab='revision';render();setTimeout(()=>{const el=document.getElementById('weak');if(el)el.scrollIntoView({behavior:'smooth',block:'start'})},30);return;
     case 'revAll':{const P=plan();const all=P.portion.every(q=>S.revTicks[q]);P.portion.forEach(q=>{if(all)delete S.revTicks[q];else S.revTicks[q]=1});break}
@@ -603,10 +585,7 @@ function act(a,d){
     case 'revUndo':{const top=S.revStack[S.revStack.length-1];if(!top||!top.round||!(top.date>=t||top.doneOn===t))return;S.revStack.pop();
       S.round=JSON.parse(top.round);if(top.extra){const ex=S.revExtra[t]||[];ex.pop();if(!ex.length)delete S.revExtra[t]}else{delete S.revLog[top.date];delete S.revNum[top.date]}
       (top.ticks||[]).forEach(q=>S.revTicks[q]=1);ui.ahead=false;break}
-    case 'restDay':{const i=+d.i;st.rest=st.rest.includes(i)?st.rest.filter(x=>x!==i):[...st.rest,i].sort();break}
-    case 'checkData':{const n=repairLessons(S);ui.msg=n?`Fixed ${n} problem${n>1?'s':''} in your lessons.`:'No problems found.';break}
-    case 'weakStepTog':st.weakStep=!st.weakStep;break;
-    case 'defaults':{const keep={priorConn:st.priorConn,priorTo:st.priorTo,priorPart:st.priorPart,ppd:st.ppd,prior:st.prior,rest:st.rest};S.settings={...DEF,...keep,steps:STEP_DEF.map(q=>({...q}))};break}
+    case 'defaults':{ui.confirmReset=false;const keep={priorConn:st.priorConn,priorTo:st.priorTo,priorPart:st.priorPart,ppd:st.ppd,prior:st.prior,rest:st.rest};S.settings={...DEF,...keep,steps:STEP_DEF.map(q=>({...q}))};break}
     case 'undoLesson':ui.confirmUndo=true;changed=false;break;
     case 'undoNo':ui.confirmUndo=false;changed=false;break;
     case 'undoYes':{const L=S.lessons.pop();if(L)delete S.cc[L.n]}ui.confirmUndo=false;break;
@@ -636,6 +615,7 @@ document.addEventListener('change',e=>{
   const wn=e.target.closest('[data-wknote]');if(wn){const w=S.wk[wn.dataset.wknote];if(w){w.note=wn.value.trim().slice(0,200);save()}return}
   const sc=e.target.closest('[data-stepcount]');if(sc){const z=S.settings.steps.find(q=>q.id===sc.dataset.stepcount);if(z){let v=parseInt(sc.value,10);z.count=isNaN(v)?1:Math.max(1,Math.min(500,v))}refreshDone();save();render();return}
   const el=e.target.closest('[data-set]');if(!el)return;
+  if(el.dataset.dayamt){act('dayPpd',{v:el.value});return}
   if(el.dataset.lad!=null){const i=+el.dataset.lad;let v=parseInt(el.value,10);if(isNaN(v))v=1;S.settings.ladder[i]=Math.max(1,Math.min(200,v));refreshDone();save();render();return}
   if(el.dataset.set==='ladder'){const v=el.value.split(/[^0-9]+/).map(x=>parseInt(x,10)).filter(x=>x>=1&&x<=200).slice(0,6);S.settings.ladder=v.length?v:[10,5];refreshDone();save();render();return}
   if(el.dataset.set==='ppd'){S.settings.ppd=normAmt(el.value);refreshDone();save();render();return}const k=el.dataset.set,st=S.settings;
