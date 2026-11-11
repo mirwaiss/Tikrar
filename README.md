@@ -3,7 +3,7 @@
 Quran memorization tracker following the Tikrar method (memorization, connection, revision).
 
 - `index.html`, `app.js`, `sw.js`, fonts and icons: the installable web app (GitHub Pages).
-- `android-www/`: the app code the Android app downloads to update itself. Current version: 18.
+- `android-www/`: the app code the Android app downloads to update itself. Current version: 19.
 - `src/tikrar.html`: the single-file source.
 - `tools/`: build scripts for the web app and the Android APK.
 
