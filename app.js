@@ -32,7 +32,7 @@ function range(pages){if(!pages.length)return'';const a=[...pages].sort((x,y)=>x
 const STEP_DEF=[{id:"listen",on:true,req:true,count:3},{id:"tafsir",on:true,req:true,count:1},{id:"memo",on:true,req:true,count:1},{id:"rec",on:true,req:true,count:3},{id:"reps",on:true,req:true,count:40}];
 const STEP_SHORT={listen:"Listen",tafsir:"Tafsir",memo:"Memorize",rec:"Record",reps:"Repeat"};
 const STEP_NAMES={listen:"Listen to a reciter",tafsir:"Read the tafsir",memo:"Memorize the page",rec:"Record clean recitations",reps:"Repeat from memory"};
-const DEF={ladder:[10,5],partReps:10,dayStart:3,joinReps:30,weakClear:20,weakL1:10,weakL2:20,weakL3:40,priorConn:0,steps:STEP_DEF.map(x=>({...x})),priorTo:0,priorPart:0,order:"surah",startPage:604,dir:-1,ppd:'1',listen:3,rec:3,reps:40,yreps:5,connTarget:10,cycle:6,rest:[],prior:""};
+const DEF={ladder:[10,5],partReps:10,partKeep:5,dayStart:3,joinReps:20,weakClear:20,weakL1:10,weakL2:20,weakL3:40,priorConn:0,steps:STEP_DEF.map(x=>({...x})),priorTo:0,priorPart:0,order:"surah",startPage:604,dir:-1,ppd:'1',listen:3,rec:3,reps:40,yreps:5,connTarget:10,cycle:6,rest:[],prior:""};
 const LS='tikrar-tracker-v1';
 const CLIENT=Math.random().toString(36).slice(2);
 function fresh(){return{v:1,setup:false,settings:{...DEF},lessons:[],logs:{},done:{},revCursor:0,weak:{},miss:{},cc:{},pp:{},wk:{},wkNo:{},recovered:[],revLog:{},revStack:[],revExtra:{},revNum:{},revTicks:{},round:null,rm:null,updated:0}}
@@ -42,7 +42,7 @@ function repairLessons(s){let n=0;const td=dk();
   const ends={};s.lessons.forEach(l=>{if(!l.lines)return;const key=(l.keys&&l.keys[0])||String(l.pages[0]);const prev=ends[key]||0;if(l.lines[0]<=prev&&prev<PL(l.pages[0])){const len=l.lines[1]-l.lines[0];const a=prev+1;l.lines=[a,Math.min(PL(l.pages[0]),a+len)];n++}ends[key]=Math.max(prev,l.lines[1])});
   let li=-1;s.lessons.forEach((l,i)=>{if(l.date<td&&l.st>0)li=i});s.lessons.forEach((l,i)=>{if(i<li&&!(l.st>0)){l.st=99;l.sd=l.date;n++}});
   if(n)s.updated=Date.now();return n}
-function normalize(o){const f=fresh();if(!o||typeof o!=='object')return f;const s={...f,...o};s.rm=o.rm&&typeof o.rm==='object'?{...rmFresh(),...o.rm}:null;s.settings={...DEF,...(o.settings||{})};if(o.settings&&!o.settings.order)s.settings.order=o.settings.dir===-1?'backward':'forward';['logs','done','weak','miss','cc','pp','wk','wkNo','revExtra','revNum','revTicks'].forEach(k=>{if(!s[k]||typeof s[k]!=='object')s[k]={}});if(!Array.isArray(s.lessons))s.lessons=[];s.lessons.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.n-b.n));if(!s.fixLad){s.fixLad=1;const td=dk();s.lessons.forEach(l=>{if(l.st!=null)return;if(l.yDate){if(l.yDate===td){l.st=1;l.sd=td}else{l.st=99;l.sd=l.yDate}}else l.st=0})}if(!Array.isArray(s.settings.ladder)||!s.settings.ladder.length)s.settings.ladder=[10,5];if(!s.fixLad2){s.fixLad2=1;if(s.settings.joinReps===40)s.settings.joinReps=30;s.lessons.forEach(l=>{if(l.lines&&l.lines[0]>1&&l.lines[1]>=PL(l.pages[0])&&l.qt==null&&(l.st||0)>0){l.qt=1;l.qd=l.sd||l.date}})}repairLessons(s);
+function normalize(o){const f=fresh();if(!o||typeof o!=='object')return f;const s={...f,...o};if(o.lessons&&!o.fixJ4){s.fixJ4=1;if(o.settings&&o.settings.joinReps===30)o.settings.joinReps=20;const yd=fromKey(dk());yd.setDate(yd.getDate()-1);const ydk=dk(yd);(o.lessons||[]).forEach(l=>{if(l.lines&&!l.virtual&&!(l.lines[0]<=1&&l.lines[1]>=PL(l.pages[0]))&&!(l.lines[0]>1&&l.lines[1]>=PL(l.pages[0]))&&(l.st||0)>=1&&l.sd&&l.sd<ydk)l.st=99})}else s.fixJ4=1;s.rm=o.rm&&typeof o.rm==='object'?{...rmFresh(),...o.rm}:null;s.settings={...DEF,...(o.settings||{})};if(o.settings&&!o.settings.order)s.settings.order=o.settings.dir===-1?'backward':'forward';['logs','done','weak','miss','cc','pp','wk','wkNo','revExtra','revNum','revTicks'].forEach(k=>{if(!s[k]||typeof s[k]!=='object')s[k]={}});if(!Array.isArray(s.lessons))s.lessons=[];s.lessons.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.n-b.n));if(!s.fixLad){s.fixLad=1;const td=dk();s.lessons.forEach(l=>{if(l.st!=null)return;if(l.yDate){if(l.yDate===td){l.st=1;l.sd=td}else{l.st=99;l.sd=l.yDate}}else l.st=0})}if(!Array.isArray(s.settings.ladder)||!s.settings.ladder.length)s.settings.ladder=[10,5];if(!s.fixLad2){s.fixLad2=1;if(s.settings.joinReps===40)s.settings.joinReps=30;s.lessons.forEach(l=>{if(l.lines&&l.lines[0]>1&&l.lines[1]>=PL(l.pages[0])&&l.qt==null&&(l.st||0)>0){l.qt=1;l.qd=l.sd||l.date}})}repairLessons(s);
   if(!s.fixYq){s.fixYq=1;const lim=fromKey(dk());lim.setDate(lim.getDate()-7);const lk=dk(lim);s.lessons.forEach(l=>{if(!l.yDate&&l.date<lk)l.yDate=l.date});const tg=s.logs[dk()];if(tg&&tg.y){const pr=s.lessons.filter(l=>l.date<dk()&&!l.yDate);if(pr.length){tg.yc=tg.yc||{};tg.yc[pr[pr.length-1].n]=tg.y}}}
   if(!s.fix3am&&s.lessons.length){s.fix3am=1;const last=s.lessons[s.lessons.length-1];const td=dk();if(last&&!last.at&&last.date===td){const y=fromKey(td);y.setDate(y.getDate()-1);const yk=dk(y);if(!s.lessons.some(l=>l.date===yk)){last.date=yk;s.updated=Date.now()}}}else if(!s.fix3am)s.fix3am=1;s.lessons.forEach(l=>{if(l.half){l.lines=l.half===1?[1,8]:[9,15];delete l.half}});Object.keys(s.pp||{}).forEach(k=>{const m=k.match(/^(\d+)h([12])$/);if(m){s.pp[m[1]+'L'+(m[2]==='1'?1:9)]=s.pp[k];delete s.pp[k]}});Object.values(s.logs||{}).forEach(g=>{if(g&&g.ppd!=null)g.ppd=normAmt(g.ppd)});if(!s.revLog||typeof s.revLog!=='object')s.revLog={};if(!s.revExtra||typeof s.revExtra!=='object')s.revExtra={};{const td=dk();Object.keys(s.revLog).filter(k=>k>td).sort().forEach(k=>{(s.revExtra[td]=s.revExtra[td]||[]).push(s.revLog[k]);delete s.revLog[k]});(s.revStack||[]).forEach(e=>{if(e.date>td){e.date=td;e.extra=true}})}if(!Array.isArray(s.revStack))s.revStack=[];{const tg=s.logs&&s.logs[dk()];if(tg&&tg.revDone&&tg.revPortion&&!s.revLog[dk()]){s.revLog[dk()]=tg.revPortion;s.revStack.push({date:dk(),prev:tg.revPrev||0})}}if(!Array.isArray(s.recovered))s.recovered=[];if(!o.wk20){s.settings.weakClear=20;s.wk20=1}if(!o.wkLv){s.wkLv=1;s.settings.weakL2=s.settings.weakClear||20;Object.keys(s.wk||{}).forEach(k=>{if(!s.wk[k].level)s.wk[k].level=2})}Object.keys(s.weak).forEach(k=>{if(s.weak[k]&&!s.wk[k])s.wk[k]={since:dk(),reviews:0,clean:0,mistakes:0,last:null,note:''}});s.weak={};Object.keys(s.wk).forEach(k=>s.weak[k]=1);if(!o.pp){const tl=s.logs[dk()];if(tl&&tl.pages)Object.keys(tl.pages).forEach(k=>{s.pp[k]=tl.pages[k]})}s.settings.order='surah';s.settings.startPage=TOTAL;if(!Array.isArray(s.settings.rest))s.settings.rest=[];if(!Array.isArray(s.settings.steps))s.settings.steps=STEP_DEF.map(x=>({...x}));s.settings.steps=s.settings.steps.filter(x=>x&&x.id&&(STEP_NAMES[x.id]||x.custom));STEP_DEF.forEach(d=>{if(!s.settings.steps.some(x=>x.id===d.id))s.settings.steps.push({...d,on:false})});s.settings.steps.forEach(z=>{if(!(z.count>=1))z.count=z.id==='listen'?(o.settings&&o.settings.listen)||3:z.id==='rec'?(o.settings&&o.settings.rec)||3:z.id==='reps'?(o.settings&&o.settings.reps)||40:1});s.settings.ppd=normAmt(s.settings.ppd);return s}
 let S=fresh();
@@ -90,7 +90,7 @@ function isPartial(l){return !!(l&&l.lines)&&!(l.lines[0]<=1&&l.lines[1]>=PL(l.p
 function tracks(l){if(!l||l.virtual)return[];const st=S.settings,pr=Math.max(1,st.partReps|0),lad=pageLadder();
   if(!isPartial(l))return[{id:'m',lad,kind:'page'}];
   if(completesPage(l))return[{id:'q',lad:[pr],kind:'part'},{id:'m',lad:(st.joinReps>0?[st.joinReps|0]:[]).concat(lad),kind:'join'}];
-  return[{id:'m',lad:[pr],kind:'part'}]}
+  const pk=Math.max(0,st.partKeep|0);return[{id:'m',lad:pk?[pr,pk]:[pr],kind:'part'}]}
 function tSt(l,tr){return Math.min((tr.id==='q'?l.qt:l.st)||0,tr.lad.length)}
 function tSd(l,tr){return (tr.id==='q'?l.qd:l.sd)||null}
 function tDone(l,tr){return tSt(l,tr)>=tr.lad.length}
@@ -98,13 +98,14 @@ function ladderComplete(l){return !!l.virtual||tracks(l).every(tr=>tDone(l,tr))}
 function lastStep(l){let m=l.date;tracks(l).forEach(tr=>{const d=tSd(l,tr);if(d&&d>m)m=d});return m}
 function inConn(l,t){return !!l.virtual||(!(isPartial(l)&&!completesPage(l))&&ladderComplete(l)&&lastStep(l)<t)}
 function nextDay(k){const d=fromKey(k);d.setDate(d.getDate()+1);return dk(d)}
-function recentItems(t,lg){const out=[];S.lessons.filter(l=>l.date<t).slice().reverse().forEach(l=>tracks(l).forEach(tr=>{const sd=tSd(l,tr),dt=sd===t;if(tDone(l,tr)&&!dt)return;
-  const k=dt?Math.max(0,tSt(l,tr)-1):tSt(l,tr);const target=tr.lad[k]||1;const key=l.n+(tr.id==='q'?'q':'');const prev=dt?((tr.id==='q'?l.qpd:l.psd)||l.date):(sd||l.date);
-  out.push({l,tr,k,key,target,count:dt?target:Math.min(target,(lg.yc&&lg.yc[key])||0),doneToday:dt,late:!dt&&nextDay(prev)<t})}));return out}
+function recentItems(t,lg){const out=[];S.lessons.filter(l=>l.date<t).slice().reverse().forEach(l=>{const trs=tracks(l);trs.forEach(tr=>{const sd=tSd(l,tr),dt=sd===t;if(tDone(l,tr)&&!dt)return;
+  let wait=null;if(tr.kind==='join'&&tSt(l,tr)===0&&!dt){const q=trs[0];if(!tDone(l,q)||!l.qd||!(l.qd<t))return;wait=l.qd}
+  const k=dt?Math.max(0,tSt(l,tr)-1):tSt(l,tr);const target=tr.lad[k]||1;const key=l.n+(tr.id==='q'?'q':'');const prev=dt?((tr.id==='q'?l.qpd:l.psd)||l.date):(wait||sd||l.date);
+  out.push({l,tr,k,key,target,count:dt?target:Math.min(target,(lg.yc&&lg.yc[key])||0),doneToday:dt,late:!dt&&nextDay(prev)<t})})});return out}
 function itemTitle(x){const l=x.l,p=l.pages[0];if(x.tr.kind==='part')return `Page ${p} · ${linesTxt(l.lines)}`;
   if(x.tr.kind==='join'){if(x.k===0&&S.settings.joinReps>0)return joinSplit(l)?`${surahName(lessonItem(l).ss[0])} part of p. ${p} · all parts joined`:`Full page ${p} · all parts joined`;return 'Page '+connLabel(l)}
   return 'Page '+lessonLabel(l)}
-function itemSub(x){if(x.tr.kind==='part')return 'Part repetition';const rest=x.tr.lad.slice(x.k+1).map(c=>c+'×');return (rest.length?'Then '+rest.join(', ')+', then connection':'Then connection')}
+function itemSub(x){if(x.tr.kind==='part')return x.tr.lad.length>1&&x.k===0?'Part repetition · then '+x.tr.lad[1]+'×':x.k>0?'Keep it fresh before joining':x.tr.id==='q'?'Last part · joined page comes next time':'Part repetition';const rest=x.tr.lad.slice(x.k+1).map(c=>c+'×');return (rest.length?'Then '+rest.join(', ')+', then connection':'Then connection')}
 function isJoinLesson(l){return !!(l&&isPartial(l)&&completesPage(l)&&S.settings.joinReps>0)}
 
 function joinSplit(l){return l.split!=null?l.split:itemShared(lessonItem(l))}
@@ -534,7 +535,8 @@ function vSettings(){
    <div class="row"><button class="btn" data-act="ladAdd" ${lad.length>=7?'disabled':''}>Add a day</button><button class="btn" data-act="ladDel" ${lad.length<=1?'disabled':''}>Remove last day</button></div>
    <details class="setup" style="margin-top:12px"><summary>When memorizing in parts</summary>
    ${num('partReps','Each part','Repetitions the day after memorizing a part',1,100)}
-   ${num('joinReps','Full page, joined','Repetitions the day after the last part · 0 = off',0,200)}</details>
+   ${num('partKeep','Earlier parts, next day','While the next part gets its repetitions · 0 = off',0,100)}
+   ${num('joinReps','Full page, joined','The day after the last part’s repetitions · 0 = off',0,200)}</details>
   </section>`;
   h+=`<section class="card"><div class="card-h"><h2>Connection and long revision</h2></div>
    ${num('connTarget','Connection days','Once a day, before long revision',1,60)}
@@ -709,7 +711,7 @@ document.addEventListener('change',e=>{
   if(k==='prior')st.prior=el.value.trim();
   else if(k==='order')st.order=['surah','forward','backward'].includes(el.value)?el.value:'surah';
   else{if(k==='priorTo')st.priorPart=0;
-  const lim={partReps:[1,100],dayStart:[0,6],joinReps:[0,200],weakClear:[1,60],weakL1:[1,200],weakL2:[1,200],weakL3:[1,200],priorConn:[0,604],priorTo:[0,114],priorPart:[0,300],ppd:[1,5],listen:[1,10],rec:[1,10],reps:[1,200],yreps:[1,50],connTarget:[1,60],cycle:[1,60]}[k];let v=parseInt(el.value,10);if(isNaN(v))v=DEF[k];v=Math.max(lim[0],Math.min(lim[1],v));if(k==='priorConn')v=Math.min(v,priorSet().size);st[k]=v}
+  const lim={partReps:[1,100],partKeep:[0,100],dayStart:[0,6],joinReps:[0,200],weakClear:[1,60],weakL1:[1,200],weakL2:[1,200],weakL3:[1,200],priorConn:[0,604],priorTo:[0,114],priorPart:[0,300],ppd:[1,5],listen:[1,10],rec:[1,10],reps:[1,200],yreps:[1,50],connTarget:[1,60],cycle:[1,60]}[k];let v=parseInt(el.value,10);if(isNaN(v))v=DEF[k];v=Math.max(lim[0],Math.min(lim[1],v));if(k==='priorConn')v=Math.min(v,priorSet().size);st[k]=v}
   refreshDone();save();render();
 });
 const TABS=['today','memorize','recent','connection','revision','progress'];
