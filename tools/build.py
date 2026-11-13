@@ -43,15 +43,17 @@ appjs=m.group(1)+"\nif('serviceWorker' in navigator){window.addEventListener('lo
 open(D+'/app.js','w').write(appjs)
 body=body[:m.start()]+'<script src="app.js"></script>'+body[m.end():]
 tail='</body></html>'
-csp='<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'; style-src \'self\' \'unsafe-inline\'; img-src \'self\' data: blob:; font-src \'self\'; connect-src \'self\'; manifest-src \'self\'; worker-src \'self\'; frame-src \'none\'">'
+csp='<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'; style-src \'self\' \'unsafe-inline\'; img-src \'self\' data: blob:; font-src \'self\' https://verses.quran.foundation; connect-src \'self\' https://api.quran.com https://verses.quran.foundation; manifest-src \'self\'; worker-src \'self\'; frame-src \'none\'">'
 head=head.replace('<meta charset="utf-8">','<meta charset="utf-8">\n'+csp)
 open(D+'/index.html','w').write(head+body+tail)
 files=['./','index.html','app.js','manifest.webmanifest','icons/icon-192.png','icons/icon-512.png','icons/icon-maskable-512.png','icons/apple-touch-icon.png']+['fonts/'+f for f in sorted(os.listdir(D+'/fonts'))]
-sw='''const CACHE='tikrar-v31';
+sw='''const CACHE='tikrar-v32';
 const FILES=%s;
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting()))});
-self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
+self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE&&k!=='tikrar-mushaf').map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
 self.addEventListener('fetch',e=>{
+  const U=new URL(e.request.url);
+  if(e.request.method==='GET'&&(U.host==='api.quran.com'||U.host==='verses.quran.foundation')){e.respondWith(caches.open('tikrar-mushaf').then(async c=>{const hit=await c.match(e.request);if(hit)return hit;const r=await fetch(e.request);if(r&&r.ok)c.put(e.request,r.clone());return r}));return}
   if(e.request.method!=='GET'||new URL(e.request.url).origin!==location.origin)return;
   e.respondWith(caches.open(CACHE).then(async c=>{
     const hit=await c.match(e.request,{ignoreSearch:true})||(e.request.mode==='navigate'?await c.match('index.html'):null);

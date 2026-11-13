@@ -70,6 +70,27 @@ h1,h2,h3{font-family:var(--f-display);font-weight:600;margin:0;text-wrap:balance
 .task .t{font-weight:600}
 .task .s{font-size:13px;color:var(--muted)}
 .ql{color:inherit;text-decoration:underline;text-decoration-color:var(--line);text-decoration-thickness:1.5px;text-underline-offset:4px}.ql:hover{text-decoration-color:var(--green)}
+
+.ql{color:inherit;font:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:inherit;text-decoration:underline;text-decoration-color:var(--line);text-decoration-thickness:1.5px;text-underline-offset:4px}.ql:hover{text-decoration-color:var(--green)}
+#mv{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;flex-direction:column;overscroll-behavior:contain}
+#mv[hidden]{display:none}
+.mv-top{display:flex;align-items:center;gap:8px;padding:calc(env(safe-area-inset-top) + 10px) 12px 10px;border-bottom:1px solid var(--line);background:var(--surface)}
+.mv-top .tt{flex:1;min-width:0;text-align:center}.mv-top .tt b{display:block}.mv-top .tt span{font-size:12px;color:var(--muted)}
+.mv-x{width:40px;height:40px;border-radius:10px;border:1px solid var(--line);background:none;color:var(--ink);font-size:18px}
+.mv-body{flex:1;overflow:auto;padding:14px 12px 20px;touch-action:pan-y}
+.mv-page{max-width:560px;margin:0 auto;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 10px}
+.mv-ln{direction:rtl;display:flex;justify-content:space-between;align-items:center;white-space:nowrap;color:var(--ink);position:relative;border-radius:6px;transition:opacity .15s}
+.mv-ln.c{justify-content:center;gap:.25em}
+.mv-ln.dim{opacity:.28}
+.mv-ln.hid>*{visibility:hidden}
+.mv-ln.hid::after{content:"";position:absolute;inset:22% 2%;border-radius:6px;background:var(--sunk);border:1px dashed var(--line)}
+.mv-ln.nxt::after{border-color:var(--green)}
+.mv-sh{direction:rtl;justify-content:center;font-family:"Amiri","Scheherazade New","Noto Naskh Arabic","Geeza Pro","Traditional Arabic",serif}
+.mv-sh .fr{border:1.5px solid var(--green);border-radius:999px;padding:0 1.2em;line-height:1.5;font-size:.62em;color:var(--green)}
+.mv-bs{font-size:.62em}
+.mv-bar{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;padding:10px 12px calc(env(safe-area-inset-bottom) + 10px);border-top:1px solid var(--line);background:var(--surface)}
+.mv-bar .btn{min-width:0}
+.mv-msg{text-align:center;color:var(--muted);padding:40px 10px}
 .task .bar{display:block;height:4px;border-radius:2px;background:var(--sunk);margin-top:7px;overflow:hidden}
 .task .bar b{display:block;height:100%;background:var(--green);border-radius:2px}
 .tick{width:26px;height:26px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-size:13px;font-weight:700}
@@ -310,7 +331,7 @@ function hijri(){const d=appNow();
   const jd=Math.floor(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/864e5)+2440588;let l=jd-1948440+10632;const n=Math.floor((l-1)/10631);l=l-10631*n+354;
   const j=Math.floor((10985-l)/5316)*Math.floor(50*l/17719)+Math.floor(l/5670)*Math.floor(43*l/15238);l=l-Math.floor((30-j)/15)*Math.floor(17719*j/50)-Math.floor(j/16)*Math.floor(15238*j/43)+29;
   const mo=Math.floor(24*l/709),day=l-Math.floor(709*mo/24),y=30*n+j-30;return M[mo-1]?`${M[mo-1]} ${day}, ${y} AH`:''}
-function ql(p,txt){return `<a class="ql" href="https://quran.com/page/${p}" target="_blank" rel="noopener" title="Open page ${p} on Quran.com">${txt}</a>`}
+function ql(p,txt,ln){return `<button class="ql" data-act="mv" data-p="${p}"${ln?` data-ln="${ln[0]}-${ln[1]}"`:''} title="Open page ${p}">${txt}</button>`}
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 /* ---------- Schedule logic ---------- */
@@ -370,6 +391,58 @@ function appStart(){let m=null;S.lessons.forEach(l=>{if(!m||l.date<m)m=l.date});
 function completesPage(l){return !!(l.lines&&l.lines[0]>1&&l.lines[1]>=PL(l.pages[0]))}
 function supersededPart(l){if(!l.lines||l.lines[1]>=PL(l.pages[0])||l.virtual)return false;const it=lessonItem(l);return S.lessons.some(j=>j!==l&&completesPage(j)&&lessonItem(j)===it&&j.date>=l.date)}
 function connLabel(l){if(!completesPage(l))return lessonLabel(l);const it=lessonItem(l);return range(l.pages)+(it&&itemShared(it)?` (${surahName(it.ss[0])} part)`:'')}
+
+
+/* ---------- Mushaf page viewer ---------- */
+const SURAH_AR=["الفاتحة", "البقرة", "آل عمران", "النساء", "المائدة", "الأنعام", "الأعراف", "الأنفال", "التوبة", "يونس", "هود", "يوسف", "الرعد", "ابراهيم", "الحجر", "النحل", "الإسراء", "الكهف", "مريم", "طه", "الأنبياء", "الحج", "المؤمنون", "النور", "الفرقان", "الشعراء", "النمل", "القصص", "العنكبوت", "الروم", "لقمان", "السجدة", "الأحزاب", "سبإ", "فاطر", "يس", "الصافات", "ص", "الزمر", "غافر", "فصلت", "الشورى", "الزخرف", "الدخان", "الجاثية", "الأحقاف", "محمد", "الفتح", "الحجرات", "ق", "الذاريات", "الطور", "النجم", "القمر", "الرحمن", "الواقعة", "الحديد", "المجادلة", "الحشر", "الممتحنة", "الصف", "الجمعة", "المنافقون", "التغابن", "الطلاق", "التحريم", "الملك", "القلم", "الحاقة", "المعارج", "نوح", "الجن", "المزمل", "المدثر", "القيامة", "الانسان", "المرسلات", "النبإ", "النازعات", "عبس", "التكوير", "الإنفطار", "المطففين", "الإنشقاق", "البروج", "الطارق", "الأعلى", "الغاشية", "الفجر", "البلد", "الشمس", "الليل", "الضحى", "الشرح", "التين", "العلق", "القدر", "البينة", "الزلزلة", "العاديات", "القارعة", "التكاثر", "العصر", "الهمزة", "الفيل", "قريش", "الماعون", "الكوثر", "الكافرون", "النصر", "المسد", "الإخلاص", "الفلق", "الناس"];
+const QAPI='https://api.quran.com/api/v4/verses/by_page/',QFONT='https://verses.quran.foundation/fonts/quran/hafs/v1/woff2/p';
+const mvFonts={},mvMem={};
+function mvKey(p){return 'tq1-'+p}
+async function mvData(p){if(mvMem[p])return mvMem[p];try{const c=localStorage.getItem(mvKey(p));if(c){return mvMem[p]=JSON.parse(c)}}catch(e){}
+  const lines={},starts=[];let last=null,pg=1,tot=1;
+  do{const r=await fetch(QAPI+p+'?words=true&word_fields=code_v1,line_number&fields=&per_page=50&page='+pg);if(!r.ok)throw new Error('http');const d=await r.json();
+    d.verses.forEach(v=>{const sn=+v.verse_key.split(':')[0];last=sn;v.words.forEach((w,i)=>{const ln=w.line_number;(lines[ln]=lines[ln]||[]).push(w.code_v1);if(v.verse_number===1&&i===0)starts.push([ln,sn])})});
+    tot=(d.pagination&&d.pagination.total_pages)||1;pg++}while(pg<=tot);
+  const out={l:lines,s:starts,last};mvMem[p]=out;try{localStorage.setItem(mvKey(p),JSON.stringify(out))}catch(e){}return out}
+function mvFont(p){if(mvFonts[p])return mvFonts[p];const f=new FontFace('qp'+p,`url(${QFONT}${p}.woff2) format("woff2")`,{display:'block'});mvFonts[p]=f.load().then(ff=>{document.fonts.add(ff);return ff}).catch(e=>{delete mvFonts[p];throw e});return mvFonts[p]}
+function mvLayout(p,d){const n=PL(p),rows=[],bis=sn=>sn!==1&&sn!==9;
+  for(let i=1;i<=n;i++){if(d.l[i]){rows.push({i,t:'w',g:d.l[i]});continue}
+    let nx=i+1;while(nx<=n&&!d.l[nx])nx++;
+    if(nx<=n){const st=d.s.find(x=>x[0]===nx),sn=st?st[1]:0;rows.push(sn&&bis(sn)&&nx-i===1?{i,t:'b'}:{i,t:'h',sn});continue}
+    let f=i;while(f-1>=1&&!d.l[f-1])f--;const sn=Math.min(114,(d.last||0)+1);rows.push(i-f===1&&bis(sn)?{i,t:'b'}:{i,t:'h',sn})}
+  return rows}
+function mvOpen(p,ln){ui.mv={p,orig:p,ln:ln||null,focus:!!ln,test:false,shown:0};document.documentElement.style.overflow='hidden';mvRender()}
+function mvClose(){ui.mv=null;document.documentElement.style.overflow='';const el=document.getElementById('mv');if(el){el.hidden=true;el.innerHTML=''}}
+function mvRange(m){return m.p===m.orig&&m.ln&&m.focus?m.ln:null}
+function mvEl(){let el=document.getElementById('mv');if(!el){el=document.createElement('div');el.id='mv';document.body.appendChild(el);
+  let sx=0,sy=0;el.addEventListener('touchstart',e=>{const t=e.touches[0];sx=t.clientX;sy=t.clientY},{passive:true});
+  el.addEventListener('touchend',e=>{if(!ui.mv)return;const t=e.changedTouches[0],dx=t.clientX-sx,dy=t.clientY-sy;if(Math.abs(dx)>70&&Math.abs(dy)<50){mvGo(dx>0?1:-1)}},{passive:true});
+  window.addEventListener('resize',()=>{if(ui.mv)mvFit()})}return el}
+function mvGo(dir){const m=ui.mv;if(!m)return;const np=m.p+dir;if(np<1||np>TOTAL)return;m.p=np;m.test=false;m.shown=0;mvRender()}
+async function mvRender(){const m=ui.mv;if(!m)return;const el=mvEl();el.hidden=false;const p=m.p,rg=mvRange(m);
+  el.innerHTML=`<div class="mv-top"><button class="mv-x" data-act="mvClose" aria-label="Close">✕</button><div class="tt"><b>Page ${p}</b><span>${esc(pageMeta(p))}</span></div><span style="width:40px"></span></div>
+   <div class="mv-body" data-act="mvTap"><div class="mv-page" id="mv-page"><div class="mv-msg">Loading page ${p}…</div></div></div>
+   <div class="mv-bar"><button class="btn" data-act="mvGo" data-dir="1" ${p>=TOTAL?'disabled':''} aria-label="Next page">‹ ${p<TOTAL?p+1:''}</button>
+   ${m.p===m.orig&&m.ln?`<button class="btn ${m.focus?'pri':''}" data-act="mvFocus">${m.focus?linesTxt(m.ln).replace(/^l/,'L'):'Full page'}</button>`:''}
+   <button class="btn ${m.test?'pri':''}" data-act="mvTest">${m.test?'Testing':'Test'}</button>
+   ${m.test?`<button class="btn" data-act="mvReveal">Reveal line</button><button class="btn" data-act="mvHide">Hide all</button>`:''}
+   <button class="btn" data-act="mvGo" data-dir="-1" ${p<=1?'disabled':''} aria-label="Previous page">${p>1?p-1:''} ›</button></div>`;
+  try{const [d]=await Promise.all([mvData(p),mvFont(p)]);if(!ui.mv||ui.mv.p!==p)return;
+    const rows=mvLayout(p,d);const box=document.getElementById('mv-page');
+    const inR=i=>!rg||(i>=rg[0]&&i<=rg[1]);let rank=0;
+    box.innerHTML=rows.map(r=>{const cls=['mv-ln'];if(!inR(r.i))cls.push('dim');
+      if(inR(r.i)&&r.t==='w'){if(m.test&&rank>=m.shown){cls.push('hid');if(rank===m.shown)cls.push('nxt')}rank++}
+      if(r.t==='w')return `<div class="${cls.join(' ')}" data-ln="${r.i}" style="font-family:qp${p}">${r.g.map(g=>`<span>${g}</span>`).join('')}</div>`;
+      if(r.t==='b')return `<div class="${cls.join(' ')} mv-sh" data-ln="${r.i}"><span class="mv-bs">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</span></div>`;
+      return `<div class="${cls.join(' ')} mv-sh" data-ln="${r.i}"><span class="fr">سورة ${SURAH_AR[r.sn-1]||''}</span></div>`}).join('');
+    m.total=rank;mvFit();
+    [p-1,p+1].forEach(q=>{if(q>=1&&q<=TOTAL){mvData(q).catch(()=>{});mvFont(q).catch(()=>{})}});
+  }catch(e){if(!ui.mv||ui.mv.p!==p)return;document.getElementById('mv-page').innerHTML=`<div class="mv-msg">Couldn’t load page ${p}. Check your internet connection.<div class="row" style="justify-content:center"><button class="btn" data-act="mvRetry">Try again</button></div></div>`}}
+function mvFit(){const box=document.getElementById('mv-page');if(!box)return;const W=box.clientWidth-20;if(W<=0)return;const ls=[...box.querySelectorAll('.mv-ln:not(.mv-sh)')];if(!ls.length)return;
+  const base=40;box.style.fontSize=base+'px';let mx=0;const ws=ls.map(l=>{l.classList.remove('c');l.style.justifyContent='flex-start';const w=[...l.children].reduce((a,c)=>a+c.getBoundingClientRect().width,0);l.style.justifyContent='';if(w>mx)mx=w;return w});
+  const fs=Math.max(12,Math.min(64,base*W*0.96/mx));box.style.fontSize=fs+'px';box.style.lineHeight=(fs*1.85)+'px';
+  const center=ui.mv&&ui.mv.p<=2;ls.forEach((l,k)=>{if(center||ws[k]<mx*0.8)l.classList.add('c')});
+  box.querySelectorAll('.mv-ln').forEach(l=>l.style.height=(fs*1.85)+'px')}
 
 /* ---------- Revision mode ---------- */
 function rmFresh(){return{on:false,from:0,to:0,ppd:2,reps:20,ladder:[10,5],cycle:0,cur:null,items:{},cnt:{},pass:{},since:null,saveRound:null,round:null}}
@@ -606,7 +679,7 @@ function vRecent(){
   if(on){h+=nearCard;if(s.rp.length)h+=`<h3 style="margin:6px 0 -6px">Still in recent memorization</h3>`}
   if(s.rp.length){
     h+=`<section class="card"><div class="card-h"><div><h2>Today</h2><div class="small muted">Each one moves on once it’s done.</div></div>${s.yDone?chipFor('done','Done'):chipFor(s.yCount?'prog':'',s.yCount+'/'+s.yT)}</div><div class="rplist">${s.rp.map(x=>{const l=x.l;
-      return `<div class="rp"><div class="rp-h"><div class="m"><b>${ql(x.l.pages[0],esc(itemTitle(x)))}</b><div class="small muted">${esc(itemSub(x))}${x.late?' · <span style="color:var(--gold)">due first</span>':''}</div></div><span class="chip ${x.doneToday?'done':x.count?'prog':''} num">${x.count}/${x.target}</span></div>
+      return `<div class="rp"><div class="rp-h"><div class="m"><b>${ql(x.l.pages[0],esc(itemTitle(x)),x.tr.kind==='part'?x.l.lines:null)}</b><div class="small muted">${esc(itemSub(x))}${x.late?' · <span style="color:var(--gold)">due first</span>':''}</div></div><span class="chip ${x.doneToday?'done':x.count?'prog':''} num">${x.count}/${x.target}</span></div>
         ${x.tr.kind==='join'&&x.k===0&&S.settings.joinReps>0&&!x.doneToday?`<button class="flag ${joinSplit(l)?'on':''}" data-act="ySplitTog" data-n="${l.n}">${joinSplit(l)?'Page has two surahs ✓':'Page has two surahs?'}</button>`:''}
         <div class="row"><button class="btn pri" data-act="y" data-k="${x.key}" ${x.doneToday?'disabled':''}>+1 from memory</button><button class="btn" data-act="yUndo" data-k="${x.key}" ${x.count?'':'disabled'}>Undo</button>${x.tr.id==='q'?'':l.pages.map(p=>weakBtn(p)).join('')}</div></div>`}).join('')}</div></section>`;
   }else if(!on||!s.near.length){
@@ -661,7 +734,7 @@ function pageCard(p,st,ln){
     else ctl=`<div class="counter">${locked?ring(0,c,'noop','disabled'):ring(v,c,'inc',at)}<div class="ctrls"><button class="btn pri" data-act="inc" ${at} ${dis}>+1${z.id==='reps'?' clean':''}</button><button class="btn" data-act="dec" ${at} ${v>0?'':'disabled'}>Undo</button></div></div>`;
     return `<div class="step ${ok?'ok':''} ${locked?'locked':''} ${col}"><span class="n">${ok?'✓':i}</span><div><div class="h">${title}</div>${note?`<div class="note">${note}</div>`:''}${ctl}</div></div>`;
   }).join('');
-  return `<section class="card"><div class="card-h"><div><div class="label">New page${ln?' · '+linesTxt(ln):''}</div><h2>${ql(p,'Page '+p)}</h2></div><span class="small muted">${esc(surahProgress(p,it&&it.k))}</span></div>${itemShared(it)?`<p class="small muted" style="margin:-4px 0 8px">This page holds ${esc(onPage(p).map(surahName).join(', '))}. Memorize only the ${esc(itemName(it))} part today.</p>`:''}
+  return `<section class="card"><div class="card-h"><div><div class="label">New page${ln?' · '+linesTxt(ln):''}</div><h2>${ql(p,'Page '+p,ln)}</h2></div><span class="small muted">${esc(surahProgress(p,it&&it.k))}</span></div>${itemShared(it)?`<p class="small muted" style="margin:-4px 0 8px">This page holds ${esc(onPage(p).map(surahName).join(', '))}. Memorize only the ${esc(itemName(it))} part today.</p>`:''}
   <div class="steps">${body||'<div class="empty">No steps are turned on. Add some in Settings → New page checklist.</div>'}</div></section>`;
 }
 function stepSummary(){const st=S.settings;return st.steps.filter(z=>z.on).map(z=>(z.label||STEP_SHORT[z.id]||'Step')+(z.count>1?' ×'+z.count:'')).join(' · ')||'No steps set'}
@@ -823,7 +896,7 @@ function widgetDays(){
 }
 let lastWidget='';
 function pushWidget(){if(!window.AndroidBridge||!AndroidBridge.updateWidget)return;try{const j=JSON.stringify({v:1,dayStart:dayStartH(),days:widgetDays()});if(j!==lastWidget){lastWidget=j;AndroidBridge.updateWidget(j)}}catch(e){}}
-function goBack(){if(ui.tab!=='today'){act('tab',{v:'today'});return'stay'}return'exit'}
+function goBack(){if(ui.mv){mvClose();return'stay'}if(ui.tab!=='today'){act('tab',{v:'today'});return'stay'}return'exit'}
 function render(){
   const v={today:vToday,memorize:rmOn()?vPerfect:vMemorize,recent:vRecent,connection:vConnection,revision:vRevision,progress:vProgress,settings:vSettings}[ui.tab]||vToday;
   document.getElementById('app').innerHTML=header()+`<main class="stack">${v()}</main>`;
@@ -877,6 +950,14 @@ function act(a,d){
     case 'conn':{const lg=log();const n=d.n;if(lg.conn[n]){delete lg.conn[n];S.cc[n]=Math.max(0,(S.cc[n]||0)-1)}else{lg.conn[n]=1;S.cc[n]=(S.cc[n]||0)+1}break}
     case 'connAll':{const lg=log(),P=plan();const all=P.conn.every(l=>lg.conn[l.n]);P.conn.forEach(l=>{const n=l.n;if(all){if(lg.conn[n]){delete lg.conn[n];S.cc[n]=Math.max(0,(S.cc[n]||0)-1)}}else if(!lg.conn[n]){lg.conn[n]=1;S.cc[n]=(S.cc[n]||0)+1}});break}
     case 'rmToggle':{const r=RM();if(!r.on){r.on=true;r.since=t;if(!r.cycle)r.cycle=Math.max(1,st.cycle|0);r.saveRound=S.round||null;S.round=r.round||null;r.round=null}else{r.on=false;r.round=S.round||null;S.round=r.saveRound||null;r.saveRound=null}ui.aheadMem=ui.ahead=false;break}
+    case 'mv':{const ln=d.ln?d.ln.split('-').map(Number):null;mvOpen(p,ln&&ln.length===2&&!(ln[0]<=1&&ln[1]>=PL(p))?ln:null);return}
+    case 'mvClose':mvClose();return;
+    case 'mvGo':mvGo(+d.dir);return;
+    case 'mvRetry':mvRender();return;
+    case 'mvFocus':if(ui.mv){ui.mv.focus=!ui.mv.focus;ui.mv.shown=0;mvRender()}return;
+    case 'mvTest':if(ui.mv){ui.mv.test=!ui.mv.test;ui.mv.shown=0;mvRender()}return;
+    case 'mvReveal':case 'mvTap':if(ui.mv&&ui.mv.test&&ui.mv.shown<(ui.mv.total||0)){ui.mv.shown++;mvRender()}return;
+    case 'mvHide':if(ui.mv){ui.mv.shown=0;mvRender()}return;
     case 'pauseTog':{if(S.pause&&S.pause.on)S.pause={on:false};else S.pause={on:true,since:t};ui.aheadMem=false;break}
     case 'rangeTog':ui.rangeOpen=!ui.rangeOpen;changed=false;return;
     case 'pInc':{const r=RM(),pf=perfectToday();if(!pf.pages.includes(p)||r.pass[p])return;if(pf.fresh&&status().locked)return;if(pf.fresh||!r.cur)r.cur={date:t,pages:pf.pages.slice()};const reps=rmReps();r.cnt[p]=Math.min(reps,(r.cnt[p]||0)+1);
