@@ -164,11 +164,11 @@ function mvClose(){ui.mv=null;document.documentElement.style.overflow='';const e
 function mvRange(m){return m.p===m.orig&&m.ln&&m.focus?m.ln:null}
 function mvEl(){let el=document.getElementById('mv');if(!el){el=document.createElement('div');el.id='mv';document.body.appendChild(el);
   let sx=0,sy=0;el.addEventListener('touchstart',e=>{const t=e.touches[0];sx=t.clientX;sy=t.clientY},{passive:true});
-  el.addEventListener('touchend',e=>{if(!ui.mv)return;const t=e.changedTouches[0],dx=t.clientX-sx,dy=t.clientY-sy;if(Math.abs(dx)>70&&Math.abs(dy)<50){mvGo(dx>0?1:-1)}},{passive:true});
+  el.addEventListener('touchend',e=>{if(!ui.mv||mvZ()>1)return;const t=e.changedTouches[0],dx=t.clientX-sx,dy=t.clientY-sy;if(Math.abs(dx)>70&&Math.abs(dy)<50){mvGo(dx>0?1:-1)}},{passive:true});
   window.addEventListener('resize',()=>{if(ui.mv)mvFit()})}return el}
 function mvGo(dir){const m=ui.mv;if(!m)return;const np=m.p+dir;if(np<1||np>TOTAL)return;m.p=np;m.test=false;m.shown=0;mvRender()}
 async function mvRender(){const m=ui.mv;if(!m)return;const el=mvEl();el.hidden=false;const p=m.p,rg=mvRange(m);
-  el.innerHTML=`<div class="mv-top"><button class="mv-x" data-act="mvClose" aria-label="Close">✕</button><div class="tt"><b>Page ${p}</b><span>${esc(pageMeta(p))}</span></div><span style="width:40px"></span></div>
+  el.innerHTML=`<div class="mv-top"><button class="mv-x" data-act="mvClose" aria-label="Close">✕</button><div class="tt"><b>Page ${p}</b><span>${esc(pageMeta(p))}</span></div><button class="mv-z" data-act="mvZoom" aria-label="Text size">${mvZ()===1?'A+':Math.round(mvZ()*100)+'%'}</button></div>
    <div class="mv-body" data-act="mvTap"><div class="mv-page" id="mv-page"><div class="mv-msg">Loading page ${p}…</div></div></div>
    <div class="mv-bar"><button class="btn" data-act="mvGo" data-dir="1" ${p>=TOTAL?'disabled':''} aria-label="Next page">‹ ${p<TOTAL?p+1:''}</button>
    ${m.p===m.orig&&m.ln?`<button class="btn ${m.focus?'pri':''}" data-act="mvFocus">${m.focus?linesTxt(m.ln).replace(/^l/,'L'):'Full page'}</button>`:''}
@@ -186,11 +186,12 @@ async function mvRender(){const m=ui.mv;if(!m)return;const el=mvEl();el.hidden=f
     m.total=rank;mvFit();
     [p-1,p+1].forEach(q=>{if(q>=1&&q<=TOTAL){mvData(q).catch(()=>{});mvFont(q).catch(()=>{})}});
   }catch(e){if(!ui.mv||ui.mv.p!==p)return;document.getElementById('mv-page').innerHTML=`<div class="mv-msg">Couldn’t load page ${p}. Check your internet connection.<div class="row" style="justify-content:center"><button class="btn" data-act="mvRetry">Try again</button></div></div>`}}
-function mvFit(){const box=document.getElementById('mv-page');if(!box)return;const W=box.clientWidth-20;if(W<=0)return;const ls=[...box.querySelectorAll('.mv-ln:not(.mv-sh)')];if(!ls.length)return;
+function mvZ(){const z=+S.settings.mvZoom;return [1,1.25,1.5,1.75].includes(z)?z:1}
+function mvFit(){const box=document.getElementById('mv-page');if(!box)return;const z=mvZ();box.style.maxWidth=z>1?'none':'';box.style.width=z>1?(z*100)+'%':'';const W=box.clientWidth-8;if(W<=0)return;const ls=[...box.querySelectorAll('.mv-ln:not(.mv-sh)')];if(!ls.length)return;
   const base=40;box.style.fontSize=base+'px';let mx=0;const ws=ls.map(l=>{l.classList.remove('c');l.style.justifyContent='flex-start';const w=[...l.children].reduce((a,c)=>a+c.getBoundingClientRect().width,0);l.style.justifyContent='';if(w>mx)mx=w;return w});
-  const fs=Math.max(12,Math.min(64,base*W*0.96/mx));box.style.fontSize=fs+'px';box.style.lineHeight=(fs*1.85)+'px';
+  const fs=Math.max(12,Math.min(96,base*W*0.985/mx));box.style.fontSize=fs+'px';box.style.lineHeight=(fs*1.85)+'px';
   const center=ui.mv&&ui.mv.p<=2;ls.forEach((l,k)=>{if(center||ws[k]<mx*0.8)l.classList.add('c')});
-  box.querySelectorAll('.mv-ln').forEach(l=>l.style.height=(fs*1.85)+'px')}
+  box.querySelectorAll('.mv-ln').forEach(l=>l.style.height=(fs*1.85)+'px');const bd=box.parentElement;if(bd&&z>1&&!bd.dataset.z){bd.dataset.z=1;bd.scrollLeft=bd.scrollWidth}}
 
 /* ---------- Revision mode ---------- */
 function rmFresh(){return{on:false,from:0,to:0,ppd:2,reps:20,ladder:[10,5],cycle:0,cur:null,items:{},cnt:{},pass:{},since:null,saveRound:null,round:null}}
@@ -704,6 +705,7 @@ function act(a,d){
     case 'rmToggle':{const r=RM();if(!r.on){r.on=true;r.since=t;if(!r.cycle)r.cycle=Math.max(1,st.cycle|0);r.saveRound=S.round||null;S.round=r.round||null;r.round=null}else{r.on=false;r.round=S.round||null;S.round=r.saveRound||null;r.saveRound=null}ui.aheadMem=ui.ahead=false;break}
     case 'mv':{const ln=d.ln?d.ln.split('-').map(Number):null;mvOpen(p,ln&&ln.length===2&&!(ln[0]<=1&&ln[1]>=PL(p))?ln:null);return}
     case 'mvClose':mvClose();return;
+    case 'mvZoom':{const zs=[1,1.25,1.5,1.75];st.mvZoom=zs[(zs.indexOf(mvZ())+1)%zs.length];save();mvRender();return}
     case 'mvGo':mvGo(+d.dir);return;
     case 'mvRetry':mvRender();return;
     case 'mvFocus':if(ui.mv){ui.mv.focus=!ui.mv.focus;ui.mv.shown=0;mvRender()}return;
