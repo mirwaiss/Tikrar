@@ -79,7 +79,10 @@ h1,h2,h3{font-family:var(--f-display);font-weight:600;margin:0;text-wrap:balance
 .mv-x{width:40px;height:40px;border-radius:10px;border:1px solid var(--line);background:none;color:var(--ink);font-size:18px}
 .mv-body{flex:1;overflow:auto;padding:14px 12px 20px;touch-action:pan-y}
 .mv-page{max-width:560px;margin:0 auto;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 10px}
-.mv-ln{direction:rtl;display:flex;justify-content:space-between;align-items:center;white-space:nowrap;color:var(--ink);position:relative;border-radius:6px;transition:opacity .15s}
+.mv-ln{direction:rtl;display:flex;justify-content:space-between;align-items:center;white-space:nowrap;color:inherit;position:relative;border-radius:6px;transition:opacity .15s}
+.mv-page.pl{background:#FFFDF7;color:#1B1B17;border-color:#E6E0CF}.mv-page.pd{background:#121814;color:#E8EEEA;border-color:#26342D}
+.mv-page.pl .mv-ln.hid::after{background:#F2EEE3;border-color:#D9D2BF}.mv-page.pd .mv-ln.hid::after{background:#19231E;border-color:#2E3D36}
+.mv-page.pl .mv-ln.nxt::after,.mv-page.pd .mv-ln.nxt::after{border-color:var(--green)}
 .mv-ln.c{justify-content:center;gap:.25em}
 .mv-ln.dim{opacity:.28}
 .mv-ln.hid>*{visibility:hidden}
@@ -397,14 +400,20 @@ function connLabel(l){if(!completesPage(l))return lessonLabel(l);const it=lesson
 const SURAH_AR=["الفاتحة", "البقرة", "آل عمران", "النساء", "المائدة", "الأنعام", "الأعراف", "الأنفال", "التوبة", "يونس", "هود", "يوسف", "الرعد", "ابراهيم", "الحجر", "النحل", "الإسراء", "الكهف", "مريم", "طه", "الأنبياء", "الحج", "المؤمنون", "النور", "الفرقان", "الشعراء", "النمل", "القصص", "العنكبوت", "الروم", "لقمان", "السجدة", "الأحزاب", "سبإ", "فاطر", "يس", "الصافات", "ص", "الزمر", "غافر", "فصلت", "الشورى", "الزخرف", "الدخان", "الجاثية", "الأحقاف", "محمد", "الفتح", "الحجرات", "ق", "الذاريات", "الطور", "النجم", "القمر", "الرحمن", "الواقعة", "الحديد", "المجادلة", "الحشر", "الممتحنة", "الصف", "الجمعة", "المنافقون", "التغابن", "الطلاق", "التحريم", "الملك", "القلم", "الحاقة", "المعارج", "نوح", "الجن", "المزمل", "المدثر", "القيامة", "الانسان", "المرسلات", "النبإ", "النازعات", "عبس", "التكوير", "الإنفطار", "المطففين", "الإنشقاق", "البروج", "الطارق", "الأعلى", "الغاشية", "الفجر", "البلد", "الشمس", "الليل", "الضحى", "الشرح", "التين", "العلق", "القدر", "البينة", "الزلزلة", "العاديات", "القارعة", "التكاثر", "العصر", "الهمزة", "الفيل", "قريش", "الماعون", "الكوثر", "الكافرون", "النصر", "المسد", "الإخلاص", "الفلق", "الناس"];
 const QAPI='https://api.quran.com/api/v4/verses/by_page/',QFONT='https://verses.quran.foundation/fonts/quran/hafs/v1/woff2/p';
 const mvFonts={},mvMem={};
-function mvKey(p){return 'tq1-'+p}
-async function mvData(p){if(mvMem[p])return mvMem[p];try{const c=localStorage.getItem(mvKey(p));if(c){return mvMem[p]=JSON.parse(c)}}catch(e){}
-  const lines={},starts=[];let last=null,pg=1,tot=1;
-  do{const r=await fetch(QAPI+p+'?words=true&word_fields=code_v1,line_number&fields=&per_page=50&page='+pg);if(!r.ok)throw new Error('http');const d=await r.json();
-    d.verses.forEach(v=>{const sn=+v.verse_key.split(':')[0];last=sn;v.words.forEach((w,i)=>{const ln=w.line_number;(lines[ln]=lines[ln]||[]).push(w.code_v1);if(v.verse_number===1&&i===0)starts.push([ln,sn])})});
-    tot=(d.pagination&&d.pagination.total_pages)||1;pg++}while(pg<=tot);
-  const out={l:lines,s:starts,last};mvMem[p]=out;try{localStorage.setItem(mvKey(p),JSON.stringify(out))}catch(e){}return out}
-function mvFont(p){if(mvFonts[p])return mvFonts[p];const f=new FontFace('qp'+p,`url(${QFONT}${p}.woff2) format("woff2")`,{display:'block'});mvFonts[p]=f.load().then(ff=>{document.fonts.add(ff);return ff}).catch(e=>{delete mvFonts[p];throw e});return mvFonts[p]}
+const QF='https://verses.quran.foundation/fonts/quran/hafs/';
+function mvTaj(){return S.settings.mvType==='tajweed'}
+function mvDark(){const m=S.settings.mvTheme||'auto';if(m==='dark')return true;if(m==='light')return false;try{return matchMedia('(prefers-color-scheme: dark)').matches}catch(e){return false}}
+let COLR=null;function mvColr(){if(COLR===null){try{COLR=!!(window.CSS&&CSS.supports&&CSS.supports('font-tech(color-COLRv1)'))}catch(e){COLR=false}}return COLR}
+function mvFam(p){if(!mvTaj())return 'qp'+p;return mvColr()?'qt'+p:'qs'+p+(mvDark()?'d':'l')}
+async function mvData(p){const v2=mvTaj(),mk=(v2?'tq2-':'tq1-')+p;if(mvMem[mk])return mvMem[mk];try{const c=localStorage.getItem(mk);if(c){return mvMem[mk]=JSON.parse(c)}}catch(e){}
+  const lines={},starts=[];let last=null;
+  const r=await fetch(QAPI+p+'?words=true&word_fields='+(v2?'code_v2,line_v2':'code_v1,line_number')+'&fields=&per_page=all');if(!r.ok)throw new Error('http');const d=await r.json();
+  d.verses.forEach(v=>{const sn=+v.verse_key.split(':')[0];last=sn;v.words.forEach((w,i)=>{const ln=v2?w.line_v2:w.line_number;(lines[ln]=lines[ln]||[]).push(v2?w.code_v2:w.code_v1);if(v.verse_number===1&&i===0)starts.push([ln,sn])})});
+  const out={l:lines,s:starts,last};mvMem[mk]=out;try{localStorage.setItem(mk,JSON.stringify(out))}catch(e){}return out}
+function mvFont(p){const fam=mvFam(p);if(mvFonts[fam])return mvFonts[fam];
+  const url=fam[1]==='p'?QF+'v1/woff2/p'+p+'.woff2':fam[1]==='t'?QF+'v4/colrv1/woff2/p'+p+'.woff2':QF+'v4/ot-svg/'+(fam.endsWith('d')?'dark':'light')+'/woff2/p'+p+'.woff2';
+  const f=new FontFace(fam,`url(${url}) format("woff2")`,{display:'block'});
+  mvFonts[fam]=f.load().then(ff=>{document.fonts.add(ff);if(fam[1]==='t'){const st=document.createElement('style');st.textContent=`@font-palette-values --${fam}d{font-family:${fam};base-palette:1}`;document.head.appendChild(st)}return ff}).catch(e=>{delete mvFonts[fam];throw e});return mvFonts[fam]}
 function mvLayout(p,d){const n=PL(p),rows=[],bis=sn=>sn!==1&&sn!==9;
   for(let i=1;i<=n;i++){if(d.l[i]){rows.push({i,t:'w',g:d.l[i]});continue}
     let nx=i+1;while(nx<=n&&!d.l[nx])nx++;
@@ -428,11 +437,11 @@ async function mvRender(){const m=ui.mv;if(!m)return;const el=mvEl();el.hidden=f
    ${m.test?`<button class="btn" data-act="mvReveal">Reveal line</button><button class="btn" data-act="mvHide">Hide all</button>`:''}
    <button class="btn" data-act="mvGo" data-dir="-1" ${p<=1?'disabled':''} aria-label="Previous page">${p>1?p-1:''} ›</button></div>`;
   try{const [d]=await Promise.all([mvData(p),mvFont(p)]);if(!ui.mv||ui.mv.p!==p)return;
-    const rows=mvLayout(p,d);const box=document.getElementById('mv-page');
+    const rows=mvLayout(p,d);const box=document.getElementById('mv-page');const fam=mvFam(p),dk2=mvDark();box.className='mv-page '+(dk2?'pd':'pl');const pal=fam[1]==='t'?`;font-palette:${dk2?'--'+fam+'d':'normal'}`:'';
     const inR=i=>!rg||(i>=rg[0]&&i<=rg[1]);let rank=0;
     box.innerHTML=rows.map(r=>{const cls=['mv-ln'];if(!inR(r.i))cls.push('dim');
       if(inR(r.i)&&r.t==='w'){if(m.test&&rank>=m.shown){cls.push('hid');if(rank===m.shown)cls.push('nxt')}rank++}
-      if(r.t==='w')return `<div class="${cls.join(' ')}" data-ln="${r.i}" style="font-family:qp${p}">${r.g.map(g=>`<span>${g}</span>`).join('')}</div>`;
+      if(r.t==='w')return `<div class="${cls.join(' ')}" data-ln="${r.i}" style="font-family:${fam}${pal}">${r.g.map(g=>`<span>${g}</span>`).join('')}</div>`;
       if(r.t==='b')return `<div class="${cls.join(' ')} mv-sh" data-ln="${r.i}"><span class="mv-bs">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</span></div>`;
       return `<div class="${cls.join(' ')} mv-sh" data-ln="${r.i}"><span class="fr">سورة ${SURAH_AR[r.sn-1]||''}</span></div>`}).join('');
     m.total=rank;mvFit();
@@ -849,6 +858,10 @@ function vSettings(){
    ${num('partKeep','Earlier parts, next day','While the next part gets its repetitions · 0 = off',0,100)}
    ${num('joinReps','Full page, joined','The day after the last part’s repetitions · 0 = off',0,200)}</details>
   </section>`;
+  h+=`<section class="card"><div class="card-h"><h2>Mushaf pages</h2></div><p class="small muted" style="margin:0 0 6px">How pages look when you tap a page name. Both are the 15-line Madani mushaf.</p>
+   <div class="field"><div class="fl"><b>Page style</b><span>${st.mvType==='tajweed'?'Newer Madinah print · a few line breaks differ from the plain pages':'Classic Madinah print'}</span></div><select id="set-mvType" data-set="mvType"><option value="plain" ${st.mvType!=='tajweed'?'selected':''}>Plain</option><option value="tajweed" ${st.mvType==='tajweed'?'selected':''}>Tajweed colors</option></select></div>
+   <div class="field"><div class="fl"><b>Page colors</b></div><select id="set-mvTheme" data-set="mvTheme"><option value="auto" ${(st.mvTheme||'auto')==='auto'?'selected':''}>Match the app</option><option value="light" ${st.mvTheme==='light'?'selected':''}>Light</option><option value="dark" ${st.mvTheme==='dark'?'selected':''}>Dark</option></select></div>
+  </section>`;
   h+=`<section class="card"><div class="card-h"><h2>Connection and long revision</h2></div>
    ${num('connTarget','Connection days','Once a day, before long revision',1,60)}
    ${num('cycle','Long revision parts','Old pages are split into this many parts, one a day',1,60)}
@@ -1028,6 +1041,8 @@ document.addEventListener('change',e=>{
   if(el.dataset.set==='ladder'){const v=el.value.split(/[^0-9]+/).map(x=>parseInt(x,10)).filter(x=>x>=1&&x<=200).slice(0,6);S.settings.ladder=v.length?v:[10,5];refreshDone();save();render();return}
   if(el.dataset.set==='ppd'){S.settings.ppd=normAmt(el.value);refreshDone();save();render();return}const k=el.dataset.set,st=S.settings;
   if(k==='prior')st.prior=el.value.trim();
+  else if(k==='mvType')st.mvType=el.value==='tajweed'?'tajweed':'plain';
+  else if(k==='mvTheme')st.mvTheme=['light','dark'].includes(el.value)?el.value:'auto';
   else if(k==='order')st.order=['surah','forward','backward'].includes(el.value)?el.value:'surah';
   else{if(k==='priorTo')st.priorPart=0;
   const lim={partReps:[1,100],partKeep:[0,100],dayStart:[0,6],joinReps:[0,200],weakClear:[1,60],weakL1:[1,200],weakL2:[1,200],weakL3:[1,200],priorConn:[0,604],priorTo:[0,114],priorPart:[0,300],ppd:[1,5],listen:[1,10],rec:[1,10],reps:[1,200],yreps:[1,50],connTarget:[1,60],cycle:[1,60]}[k];let v=parseInt(el.value,10);if(isNaN(v))v=DEF[k];v=Math.max(lim[0],Math.min(lim[1],v));if(k==='priorConn')v=Math.min(v,priorSet().size);st[k]=v}
