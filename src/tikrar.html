@@ -60,7 +60,7 @@ h1,h2,h3{font-family:var(--f-display);font-weight:600;margin:0;text-wrap:balance
 .hero .label{color:inherit;opacity:.75}
 .hero .pg{font-family:var(--f-display);font-size:44px;font-weight:700;line-height:1}
 .hero .sub{opacity:.85;font-size:14px}
-.hero .day{text-align:right;font-family:var(--f-display);font-size:15px;opacity:.9}
+.hero button{background:none;border:0;color:inherit;font:inherit;text-align:left;padding:0;cursor:pointer}.hero .hero-main{display:block;min-width:0}.hero .day{text-align:right;align-self:stretch;display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-end;padding-left:12px;font-family:var(--f-display);font-size:15px;opacity:.9}
 
 /* task rows */
 .tasks{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
@@ -71,6 +71,7 @@ h1,h2,h3{font-family:var(--f-display);font-weight:600;margin:0;text-wrap:balance
 .task .s{font-size:13px;color:var(--muted)}
 .ql{color:inherit;text-decoration:underline;text-decoration-color:var(--line);text-decoration-thickness:1.5px;text-underline-offset:4px}.ql:hover{text-decoration-color:var(--green)}
 
+.note .ql{color:var(--green)}
 .ql{color:inherit;font:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:inherit;text-decoration:underline;text-decoration-color:var(--line);text-decoration-thickness:1.5px;text-underline-offset:4px}.ql:hover{text-decoration-color:var(--green)}
 #mv{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;flex-direction:column;overscroll-behavior:contain}
 #mv[hidden]{display:none}
@@ -183,6 +184,7 @@ h1,h2,h3{font-family:var(--f-display);font-weight:600;margin:0;text-wrap:balance
 .cnt input{width:58px;padding:6px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;text-align:center}
 .amt{display:flex;flex-direction:column;gap:8px}
 .amt .seg-wrap>span{min-width:40px}
+.seg-wrap select{padding:8px 10px;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit}
 .seg-wrap{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface)}
 .seg button{border:0;border-left:1px solid var(--line);background:none;padding:7px 0;font-weight:600;min-width:42px}
@@ -224,8 +226,8 @@ details.setup>summary{cursor:pointer;font-weight:500;color:var(--muted);font-siz
 /* mushaf grid */
 .juz{display:grid;grid-template-columns:34px 1fr;gap:8px;align-items:center;padding-block:2px}
 .juz .jl{font-size:11px;color:var(--muted);text-align:right}
-.cells{display:flex;flex-wrap:wrap;gap:2px}
-.cell{width:11px;height:14px;border-radius:2px;background:var(--c-none)}
+.cells{display:flex;flex-wrap:nowrap;gap:2px}
+.cell{flex:1 1 0;max-width:11px;min-width:5px;height:14px;border-radius:2px;background:var(--c-none)}
 .cell.rev{background:var(--c-rev)} .cell.conn{background:var(--c-conn)} .cell.new{background:var(--c-new)}
 .cell.weak{outline:2px solid var(--danger);outline-offset:-1px}.cell.weak.w1{outline-color:#d8af5c}.cell.weak.w2{outline-color:#e08a3c}
 .legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--muted);margin-top:10px}
@@ -641,12 +643,13 @@ function vToday(){
   let h='';
   const pg=s.tp.pages;
   const pf=s.pf,R0=S.rm;
+  if(!S.lessons.length&&!S.setupSeen&&!(st.priorTo>0)&&!pf)h+=`<section class="card"><h2>Welcome</h2><p class="muted" style="margin:6px 0 0">Starting from An-Nas and working back to Al-Baqarah. If you’ve already memorized some surahs, tell the app first so they go into revision.</p><div class="row"><button class="btn pri" data-act="setupGo">I’ve memorized some already</button><button class="btn" data-act="setupSkip">Start from An-Nas</button></div></section>`;
   if(pf){if(s.locked&&pf.fresh&&pf.pages.length)h+=`<div class="card" style="border-color:var(--gold);background:var(--gold-soft)"><b>Next pages are locked</b><div class="small" style="color:var(--ink)">Finish the earlier repetitions in Near revision to unlock them.</div></div>`;
     const rg=rmRange(),pd=pf.pages.length&&pf.pages.every(p=>R0.pass[p]);
-    h+=`<button class="hero" data-act="tab" data-v="progress" aria-label="Open progress" style="border:0;text-align:left;width:100%;font:inherit"><div><div class="label">${pd?'Perfected today':'Perfecting today'}</div><div class="pg num">${pf.pages.length?(pf.pages.length>1?'p. '+pf.pages.join(', '):'p. '+pf.pages[0]):'—'}</div><div class="sub">${pf.pages.length?esc(pageMeta(pf.pages[0])):'Range perfected'}</div></div><div class="day"><span class="small">${rg.pages.filter(p=>R0.pass[p]).length} / ${rg.pages.length}</span><br><span class="small" style="opacity:.8">perfected</span></div></button>`;
+    h+=`<div class="hero"><button class="hero-main" data-act="tab" data-v="memorize"><div class="label">${pd?'Perfected today':'Perfecting today'}</div><div class="pg num">${pf.pages.length?(pf.pages.length>1?'p. '+pf.pages.join(', '):'p. '+pf.pages[0]):'—'}</div><div class="sub">${pf.pages.length?esc(pageMeta(pf.pages[0])):'Range perfected'}</div></button><button class="day" data-act="tab" data-v="progress"><span class="small">${rg.pages.filter(p=>R0.pass[p]).length} / ${rg.pages.length}</span><br><span class="small" style="opacity:.8">perfected · Progress ›</span></button></div>`;
   }else{
   if(s.locked&&!s.tp.done&&!s.paused)h+=`<div class="card" style="border-color:var(--gold);background:var(--gold-soft)"><b>New memorization is locked</b><div class="small" style="color:var(--ink)">Finish ${lateStages(s)} earlier repetition${lateStages(s)>1?'s':''} in Recent memorization to unlock the next lesson.</div></div>`;
-  h+=`<button class="hero" data-act="tab" data-v="progress" aria-label="Open progress" style="border:0;text-align:left;width:100%;font:inherit"><div><div class="label">${s.tp.done?'Memorized today':s.paused?'Paused · next page':'Today’s page'}${s.tp.lines?' · '+linesTxt(s.tp.lines):''}</div><div class="pg num">${pg.length?(pg.length>1?range(pg):'p. '+pg[0]):'—'}</div><div class="sub">${pg.length?esc(surahProgress(pg[0],s.tp.keys&&s.tp.keys[0])+' · Juz '+juzOf(pg[0])):s.tp.finished?'All 604 pages memorized':''}</div></div><div class="day"><span class="small">${memorizedSet().size} / ${TOTAL}</span><br><span class="small" style="opacity:.8">Progress ›</span></div></button>`;
+  h+=`<div class="hero"><button class="hero-main" data-act="tab" data-v="memorize"><div class="label">${s.tp.done?'Memorized today':s.paused?'Paused · next page':'Today’s page'}${s.tp.lines?' · '+linesTxt(s.tp.lines):''}</div><div class="pg num">${pg.length?(pg.length>1?range(pg):'p. '+pg[0]):'—'}</div><div class="sub">${pg.length?esc(surahProgress(pg[0],s.tp.keys&&s.tp.keys[0])+' · Juz '+juzOf(pg[0])):s.tp.finished?'All 604 pages memorized':''}</div></button><button class="day" data-act="tab" data-v="progress"><span class="small">${memorizedSet().size} / ${TOTAL}</span><br><span class="small" style="opacity:.8">Progress ›</span></button></div>`;
   }
   h+=rmToggleRow();
 
@@ -719,12 +722,12 @@ function pageCard(p,st,ln){
   const cur=ss.findIndex(z=>!z.done)+1;const open=ui.openStep[p]!=null?ui.openStep[p]:cur;
   let blocked=false;
   const body=ss.map((z,k)=>{
-    const i=k+1,locked=blocked,ok=z.done,c=z.count,v=z.val,dis=locked||ok?'disabled':'';
+    const i=k+1,locked=false,ok=z.done,c=z.count,v=z.val,dis=locked||ok?'disabled':'';
     if(!z.done)blocked=true;
     const col=i===open?'':`collapsed" data-act="openStep" data-p="${p}" data-i="${i}`;
     const at=`data-p="${p}" data-id="${z.id}"`;
     let title,note='';
-    if(z.id==='listen'){title=`Listen to a reciter ${c}×`;note=`Follow along in the mushaf to protect against mistakes. <a href="https://quran.com/page/${p}" target="_blank" rel="noopener">Open page ${p} on Quran.com</a>`}
+    if(z.id==='listen'){title=`Listen to a reciter ${c}×`;note=`Follow along in the mushaf to protect against mistakes. ${ql(p,'Open page '+p,ln)}`}
     else if(z.id==='tafsir'){title='Read the tafsir';note='Al-Mukhtasar fi al-Tafsir (English) or Tafsir al-Muyassar (Arabic), any time today.'}
     else if(z.id==='memo'){
       if(ln&&ln[1]<PL(p)){title=`Memorize ${linesTxt(ln)} of p. ${p}`;note=`Watch where each verse stops and starts. Carry on a little into line ${ln[1]+1} so the parts join.`}
@@ -823,7 +826,7 @@ function vProgress(){
   const wl=weakList();
   h+=`<section class="card"><div class="card-h"><h2>Weak pages</h2><button class="btn" data-act="goWeak">Open</button></div><p class="small muted" style="margin:0">${wl.length?[3,2,1].map(l=>{const n=wl.filter(w=>w.level===l).length;return n?n+' '+WK_NAMES[l].toLowerCase():''}).filter(Boolean).join(' · '):'None flagged'}</p></section>`;
   const recent=S.lessons.slice(-10).reverse();
-  h+=`<section class="card"><div class="card-h"><h2>Recent lessons</h2>${S.lessons.length?`<button class="btn" data-act="undoLesson">Undo last lesson</button>`:''}</div>${ui.confirmUndo?`<div class="confirm">Remove your last lesson (page ${lessonLabel(S.lessons[S.lessons.length-1])})? Its page becomes today’s page again.<div class="row"><button class="btn warn" data-act="undoYes">Remove lesson</button><button class="btn" data-act="undoNo">Keep it</button></div></div>`:''}${recent.length?`<div class="list">${recent.map(l=>`<div class="li"><div class="m"><b>${ql(Math.min(...l.pages),'Page '+connLabel(l))}</b><div>${esc(pageMeta(l.pages[0]))}</div></div><span class="small muted">${fmt(fromKey(l.date),{month:'short',day:'numeric'})}</span></div>`).join('')}</div>`:'<div class="empty">Lessons you complete appear here.</div>'}</section>`;
+  h+=`<section class="card"><div class="card-h"><h2>Recent lessons</h2>${S.lessons.length?`<button class="btn" data-act="undoLesson">Undo last lesson</button>`:''}</div>${ui.confirmUndo?`<div class="confirm">Remove your last lesson (page ${lessonLabel(S.lessons[S.lessons.length-1])})? Its page becomes today’s page again.<div class="row"><button class="btn warn" data-act="undoYes">Remove lesson</button><button class="btn" data-act="undoNo">Keep it</button></div></div>`:''}${recent.length?`<div class="list">${recent.map(l=>`<div class="li" style="grid-template-columns:1fr auto"><div class="m"><b>${ql(Math.min(...l.pages),'Page '+connLabel(l))}</b><div>${esc(pageMeta(l.pages[0]))}</div></div><span class="small muted">${fmt(fromKey(l.date),{month:'short',day:'numeric'})}</span></div>`).join('')}</div>`:'<div class="empty">Lessons you complete appear here.</div>'}</section>`;
   return h;
 }
 function priorFields(st){
@@ -974,6 +977,8 @@ function act(a,d){
     case 'mvTest':if(ui.mv){ui.mv.test=!ui.mv.test;ui.mv.shown=0;mvRender()}return;
     case 'mvReveal':case 'mvTap':if(ui.mv&&ui.mv.test&&ui.mv.shown<(ui.mv.total||0)){ui.mv.shown++;mvRender()}return;
     case 'mvHide':if(ui.mv){ui.mv.shown=0;mvRender()}return;
+    case 'setupGo':S.setupSeen=1;ui.tab='settings';save();render();setTimeout(()=>{const d=document.querySelector('details.setup');if(d){d.open=true;d.scrollIntoView({behavior:'smooth',block:'center'})}},30);return;
+    case 'setupSkip':S.setupSeen=1;break;
     case 'pauseTog':{if(S.pause&&S.pause.on)S.pause={on:false};else S.pause={on:true,since:t};ui.aheadMem=false;break}
     case 'rangeTog':ui.rangeOpen=!ui.rangeOpen;changed=false;return;
     case 'pInc':{const r=RM(),pf=perfectToday();if(!pf.pages.includes(p)||r.pass[p])return;if(pf.fresh&&status().locked)return;if(pf.fresh||!r.cur)r.cur={date:t,pages:pf.pages.slice()};const reps=rmReps();r.cnt[p]=Math.min(reps,(r.cnt[p]||0)+1);
