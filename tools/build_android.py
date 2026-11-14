@@ -117,7 +117,7 @@ rows=''.join(f'''
         <TextView android:id="@+id/w_r{i}" android:layout_width="match_parent" android:layout_height="wrap_content"
             android:paddingTop="5dp" android:paddingBottom="5dp"
             android:textSize="14sp" android:textColor="#E4ECE7" android:maxLines="1" android:ellipsize="end"
-            android:text="○  {lbl}" />''' for i,lbl in enumerate(['New page','Yesterday','Connection','Revision']))
+            android:text="○  {lbl}" />''' for i,lbl in enumerate(['New','Recent','Near','Long']))
 w('app/src/main/res/layout/widget.xml',f'''<?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/w_root"

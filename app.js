@@ -144,11 +144,12 @@ function mvTaj(){return S.settings.mvType==='tajweed'}
 function mvDark(){const m=S.settings.mvTheme||'auto';if(m==='dark')return true;if(m==='light')return false;try{return matchMedia('(prefers-color-scheme: dark)').matches}catch(e){return false}}
 let COLR=null;function mvColr(){if(COLR===null){try{COLR=!!(window.CSS&&CSS.supports&&CSS.supports('font-tech(color-COLRv1)'))}catch(e){COLR=false}}return COLR}
 function mvFam(p){if(!mvTaj())return 'qp'+p;return mvColr()?'qt'+p:'qs'+p+(mvDark()?'d':'l')}
-async function mvData(p){const v2=mvTaj(),mk=(v2?'tq2-':'tq1-')+p;if(mvMem[mk])return mvMem[mk];try{const c=localStorage.getItem(mk);if(c){return mvMem[mk]=JSON.parse(c)}}catch(e){}
+async function mvData(p){const v2=mvTaj(),mk=(v2?'tq4-':'tq3-')+p;if(mvMem[mk])return mvMem[mk];try{const c=localStorage.getItem(mk);if(c){return mvMem[mk]=JSON.parse(c)}}catch(e){}
+  const qs=[p-1,p,p+1].filter(q=>q>=1&&q<=TOTAL);
+  const res=await Promise.all(qs.map(q=>fetch(QAPI+q+'?words=true&word_fields=code_v1,code_v2,line_number,line_v2,page_number,v2_page&fields=&per_page=all').then(r=>{if(!r.ok)throw new Error('http');return r.json()})));
   const lines={},starts=[];let last=null;
-  const r=await fetch(QAPI+p+'?words=true&word_fields='+(v2?'code_v2,line_v2':'code_v1,line_number')+'&fields=&per_page=all');if(!r.ok)throw new Error('http');const d=await r.json();
-  d.verses.forEach(v=>{const sn=+v.verse_key.split(':')[0];last=sn;v.words.forEach((w,i)=>{const ln=v2?w.line_v2:w.line_number;(lines[ln]=lines[ln]||[]).push(v2?w.code_v2:w.code_v1);if(v.verse_number===1&&i===0)starts.push([ln,sn])})});
-  const out={l:lines,s:starts,last};mvMem[mk]=out;try{localStorage.setItem(mk,JSON.stringify(out))}catch(e){}return out}
+  res.forEach(d=>d.verses.forEach(v=>{const sn=+v.verse_key.split(':')[0];v.words.forEach(w=>{if((v2?w.v2_page:w.page_number)!==p)return;const ln=v2?w.line_v2:w.line_number;(lines[ln]=lines[ln]||[]).push(v2?w.code_v2:w.code_v1);last=sn;if(v.verse_number===1&&w.position===1)starts.push([ln,sn])})}));
+  const out={l:lines,s:starts,last};mvMem[mk]=out;try{localStorage.setItem(mk,JSON.stringify(out));['tq1-','tq2-'].forEach(o=>localStorage.removeItem(o+p))}catch(e){}return out}
 function mvFont(p){const fam=mvFam(p);if(mvFonts[fam])return mvFonts[fam];
   const url=fam[1]==='p'?QF+'v1/woff2/p'+p+'.woff2':fam[1]==='t'?QF+'v4/colrv1/woff2/p'+p+'.woff2':QF+'v4/ot-svg/'+(fam.endsWith('d')?'dark':'light')+'/woff2/p'+p+'.woff2';
   const f=new FontFace(fam,`url(${url}) format("woff2")`,{display:'block'});
