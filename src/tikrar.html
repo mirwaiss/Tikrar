@@ -96,6 +96,18 @@ h1,h2,h3{font-family:var(--f-display);font-weight:600;margin:0;text-wrap:balance
 .mv-bar{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;padding:10px 12px calc(env(safe-area-inset-bottom) + 10px);border-top:1px solid var(--line);background:var(--surface)}
 .mv-bar .btn{min-width:0}
 .mv-msg{text-align:center;color:var(--muted);padding:40px 10px}
+
+.mgrp{display:flex;flex-direction:column;gap:6px}.mgt{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:0 4px}
+.mlist{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.mrow{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--line);padding:13px 16px;color:var(--ink);font:inherit;cursor:pointer}
+.mrow:first-child{border-top:0}.mrow:hover{background:var(--sunk)}
+.mrow>span:first-child{flex:1;min-width:0}.mrow b{display:block;font-weight:600}.mrow b+span{display:block;font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mrow .chev{color:var(--muted);font-size:20px}
+.pair{display:flex;align-items:center;gap:6px}.pair input{width:72px!important}
+.field .cnt input{width:72px;padding:8px;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;text-align:center}
+.field .cnt{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:14px}
+.txt{flex:1;min-width:0;padding:9px 11px;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit}
+.pattern{display:flex;flex-direction:column;gap:10px}.pattern>div{display:flex;flex-direction:column;gap:2px}.pattern span{font-size:14px}
 .task .bar{display:block;height:4px;border-radius:2px;background:var(--sunk);margin-top:7px;overflow:hidden}
 .task .bar b{display:block;height:100%;background:var(--green);border-radius:2px}
 .tick{width:26px;height:26px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-size:13px;font-weight:700}
@@ -482,14 +494,13 @@ function rmSet(k,v){const r=RM(),n=parseInt(v,10);
   if(r.cur&&!r.cur.pages.some(q=>r.pass[q]))r.cur=null;
   refreshDone();save();render()}
 function rmSurahs(){const mem=[...memorizedSet()].sort((a,b)=>a-b),by={};mem.forEach(p=>onPage(p).forEach(n=>{(by[n]=by[n]||[]).push(p)}));return Object.keys(by).map(Number).sort((a,b)=>b-a).map(n=>({n,from:by[n][0],to:by[n][by[n].length-1]}))}
-function rangeCard(){const r=RM(),rg=rmRange(),done=rg.pages.filter(p=>r.pass[p]).length,su=rmSurahs();
-  const selS=su.find(x=>!rg.all&&x.from===rg.from&&x.to===rg.to);
-  return `<section class="card"><div class="card-h"><div><div class="label">Range</div><h2>${rg.all?'All memorized pages':selS?esc(surahName(selS.n)):'Pages '+rg.from+'–'+rg.to}</h2><div class="small muted">${rg.pages.length&&(rg.all||selS)?'pp. '+rg.from+'–'+rg.to+' · ':''}${done} of ${rg.pages.length} perfected</div></div></div>
-   <div class="field"><div class="fl"><b>Pages to perfect a day</b></div><select id="rm-ppd2" data-rm="ppd">${[1,2,3,4,5,6,7,8,9,10].map(n=>`<option value="${n}" ${(r.ppd|0)===n?'selected':''}>${n} page${n>1?'s':''}</option>`).join('')}</select></div>
-   <details class="setup"${ui.rangeOpen?' open':''}><summary data-act="rangeTog">Change range</summary>
-   <div class="field"><div class="fl"><b>Surah</b><span>Sets the range to that surah</span></div><select id="rm-surah" data-rm="surah"><option value="0" ${rg.all?'selected':''}>All memorized</option>${su.map(x=>`<option value="${x.n}" ${selS&&selS.n===x.n?'selected':''}>${esc(surahName(x.n))}</option>`).join('')}${!rg.all&&!selS?'<option selected disabled>Custom pages</option>':''}</select></div>
-   <div class="field"><div class="fl"><b>From page</b><span>Or type any pages</span></div><input type="number" id="rm-from" data-rm="from" min="1" max="604" value="${rg.from||''}" inputmode="numeric"></div>
-   <div class="field"><div class="fl"><b>To page</b></div><input type="number" id="rm-to" data-rm="to" min="1" max="604" value="${rg.to||''}" inputmode="numeric"></div></details></section>`}
+function rmRangeInfo(){const r=RM(),rg=rmRange(),su=rmSurahs(),selS=su.find(x=>!rg.all&&x.from===rg.from&&x.to===rg.to);return{r,rg,su,selS,done:rg.pages.filter(p=>r.pass[p]).length,name:rg.all?'All memorized pages':selS?surahName(selS.n):'Pages '+rg.from+'–'+rg.to}}
+function rmRangeFields(){const {rg,su,selS}=rmRangeInfo();
+  return `<div class="field"><div class="fl"><b>Surah</b><span>Perfect the pages of one surah</span></div><select id="rm-surah" data-rm="surah"><option value="0" ${rg.all?'selected':''}>All memorized pages</option>${su.map(x=>`<option value="${x.n}" ${selS&&selS.n===x.n?'selected':''}>${esc(surahName(x.n))}</option>`).join('')}${!rg.all&&!selS?'<option selected disabled>Custom pages</option>':''}</select></div>
+   <div class="field"><div class="fl"><b>Or choose pages</b><span>From page – to page</span></div><span class="pair"><input type="number" id="rm-from" data-rm="from" min="1" max="604" value="${rg.from||''}" inputmode="numeric" aria-label="From page"><span>–</span><input type="number" id="rm-to" data-rm="to" min="1" max="604" value="${rg.to||''}" inputmode="numeric" aria-label="To page"></span></div>`}
+function rmPpdField(id){const r=RM();return `<div class="field"><div class="fl"><b>Pages to perfect a day</b></div><select id="${id}" data-rm="ppd">${[1,2,3,4,5,6,7,8,9,10].map(n=>`<option value="${n}" ${(r.ppd|0)===n?'selected':''}>${n} page${n>1?'s':''}</option>`).join('')}</select></div>`}
+function rangeCard(){const {rg,done,name,selS}=rmRangeInfo();
+  return `<section class="card"><div class="card-h"><div><div class="label">Pages to perfect</div><h2>${esc(name)}</h2><div class="small muted">${rg.pages.length&&(rg.all||selS)?'pp. '+rg.from+'–'+rg.to+' · ':''}${done} of ${rg.pages.length} perfected</div></div></div>${rmRangeFields()}${rmPpdField('rm-ppd2')}</section>`}
 function rmToggleRow(){const r=RM();if(!rmOn())return '';
   return `<div class="card" style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-color:var(--green)"><div style="flex:1;min-width:0"><b>Revision mode</b><div class="small muted">Day ${daysBetween(r.since||TODAY(),TODAY())+1} · memorization is waiting</div></div><button class="btn" data-act="rmToggle">Turn off</button></div>`}
 function vPerfect(){const s=status(),r=RM(),pf=s.pf,reps=rmReps(),rg=rmRange();
@@ -749,7 +760,7 @@ function pageCard(p,st,ln){
     return `<div class="step ${ok?'ok':''} ${locked?'locked':''} ${col}"><span class="n">${ok?'✓':i}</span><div><div class="h">${title}</div>${note?`<div class="note">${note}</div>`:''}${ctl}</div></div>`;
   }).join('');
   return `<section class="card"><div class="card-h"><div><div class="label">New page${ln?' · '+linesTxt(ln):''}</div><h2>${ql(p,'Page '+p,ln)}</h2></div><span class="small muted">${esc(surahProgress(p,it&&it.k))}</span></div>${itemShared(it)?`<p class="small muted" style="margin:-4px 0 8px">This page holds ${esc(onPage(p).map(surahName).join(', '))}. Memorize only the ${esc(itemName(it))} part today.</p>`:''}
-  <div class="steps">${body||'<div class="empty">No steps are turned on. Add some in Settings → New page checklist.</div>'}</div></section>`;
+  <div class="steps">${body||'<div class="empty">No steps are turned on. Add some in Settings → New memorization steps.</div>'}</div></section>`;
 }
 function stepSummary(){const st=S.settings;return st.steps.filter(z=>z.on).map(z=>(z.label||STEP_SHORT[z.id]||'Step')+(z.count>1?' ×'+z.count:'')).join(' · ')||'No steps set'}
 
@@ -841,58 +852,53 @@ function priorFields(st){
    ${np?`<p class="small muted" style="margin:2px 0 4px">Next new page: p. ${np} · ${esc(surahProgress(np,nk))}</p>`:''}`;
 }
 function vSettings(){
-  const st=S.settings;const D=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  const num=(k,label,hint,min,max)=>`<div class="field"><div class="fl"><b>${label}</b><span>${hint}</span></div><input type="number" id="set-${k}" data-set="${k}" min="${min}" max="${max}" value="${st[k]}" inputmode="numeric"></div>`;
-  let h=`<h2 style="font-size:22px">Settings</h2><button class="task" data-act="tab" data-v="progress" style="border:1px solid var(--line);border-radius:var(--r);background:var(--surface)"><span class="tick done">✓</span><span><span class="t">Progress</span><span class="s" style="display:block">${memorizedSet().size} of ${TOTAL} pages · mushaf map · recent lessons</span></span><span class="chip">›</span></button>`;
-  h+=`<section class="card"><div class="card-h"><h2>Plan</h2><span class="small muted">An-Nas → Al-Fatihah</span></div>
-   <details class="setup"><summary>Initial setup</summary>${priorFields(st)}</details>
-   <div class="field"><div class="fl"><b>Usual amount per day</b><span>${(m=>m>=12?'About '+Math.floor(m/12)+' yr'+(m%12?' '+(m%12)+' mo':''):'About '+m+' months')(Math.round(604/amtPages(st.ppd)/30.4))} for the whole Quran</span></div><select id="set-ppd" data-set="ppd">${['1L','2L','3L','4L','5L','6L','half','1','2','3'].map(k=>`<option value="${k}" ${st.ppd===k?'selected':''}>${amtLabel(k)}</option>`).join('')}</select></div>
-   <div class="field"><div class="fl"><b>New day starts at</b><span>Work done before this time counts for the previous day</span></div><select id="set-dayStart" data-set="dayStart">${[0,1,2,3,4,5,6].map(h=>`<option value="${h}" ${dayStartH()===h?'selected':''}>${h===0?'Midnight':h+':00 am'}</option>`).join('')}</select></div>
-  </section>`;
-  {const r=RM(),rl=rmLad();h+=`<section class="card"><div class="card-h"><h2>Revision mode</h2><button class="sw ${rmOn()?'on':''}" data-act="rmToggle" aria-pressed="${rmOn()}" aria-label="Revision mode"></button></div><p class="small muted" style="margin:0 0 6px">A separate mode with its own three parts: Perfect, Near revision and Long revision. New memorization, recent memorization and connection wait untouched until you turn it off. Choose the range on the Perfect tab.</p>
-   <div class="field"><div class="fl"><b>Pages to perfect a day</b></div><select id="rm-ppd" data-rm="ppd">${[1,2,3,4,5,6,7,8,9,10].map(n=>`<option value="${n}" ${(r.ppd|0)===n?'selected':''}>${n} page${n>1?'s':''}</option>`).join('')}</select></div>
-   <div class="field"><div class="fl"><b>Perfect</b><span>Recitations from memory</span></div><label class="cnt"><input type="number" id="rm-reps" data-rm="reps" min="1" max="200" value="${rmReps()}" inputmode="numeric" style="width:84px;padding:8px">×</label></div>
-   ${rl.map((c,i)=>`<div class="field"><div class="fl"><b>Near revision day ${i+1}</b><span>${i===0?'The next time after perfecting':'The time after that'}</span></div><label class="cnt"><input type="number" id="rmlad-${i}" data-rmlad="${i}" min="1" max="200" value="${c}" inputmode="numeric" style="width:84px;padding:8px">×</label></div>`).join('')}
-   <div class="row"><button class="btn" data-act="rmLadAdd" ${rl.length>=7?'disabled':''}>Add a day</button><button class="btn" data-act="rmLadDel" ${rl.length<=1?'disabled':''}>Remove last day</button></div>
-   <div class="field"><div class="fl"><b>Finish long revision in</b><span>Days, one part a day</span></div><label class="cnt"><input type="number" id="rm-cycle" data-rm="cycle" min="1" max="60" value="${rmCycle()}" inputmode="numeric" style="width:84px;padding:8px">days</label></div>
-  </section>`}
-  h+=`<section class="card"><div class="card-h"><h2>New memorization</h2></div><p class="small muted" style="margin:0 0 6px">The steps for each new lesson. Set × to 1 for a checkbox, or higher for a counter.</p>
+  const st=S.settings,sec=ui.sset;
+  const num=(k,label,hint,min,max,suf)=>`<div class="field"><div class="fl"><b>${label}</b>${hint?`<span>${hint}</span>`:''}</div><label class="cnt"><input type="number" id="set-${k}" data-set="${k}" min="${min}" max="${max}" value="${st[k]}" inputmode="numeric">${suf||''}</label></div>`;
+  const rmNum=(k,label,hint,min,max,val,suf)=>`<div class="field"><div class="fl"><b>${label}</b>${hint?`<span>${hint}</span>`:''}</div><label class="cnt"><input type="number" id="rm-${k}" data-rm="${k}" min="${min}" max="${max}" value="${val}" inputmode="numeric">${suf||''}</label></div>`;
+  const head=(t,intro)=>`<div class="row" style="margin:0 0 -4px"><button class="btn" data-act="sset" data-v="">‹ Settings</button></div><h2 style="font-size:22px">${t}</h2>${intro?`<p class="muted" style="margin:-6px 0 0">${intro}</p>`:''}`;
+  const card=(t,body)=>`<section class="card">${t?`<div class="card-h"><h2>${t}</h2></div>`:''}${body}</section>`;
+  const reps=(st.steps.find(z=>z.id==='reps'&&z.on)||{}).count||0,lad=st.ladder||[10,5];
+  const ladTxt=a=>a.map(c=>c+'×').join(', ');
+  if(sec==='start')return head('Starting point','What you had memorized before using the app. These pages go straight into revision.')+card('',priorFields(st));
+  if(sec==='plan')return head('Daily plan')+card('',`
+   <div class="field"><div class="fl"><b>New memorization a day</b><span>${(m=>m>=12?'About '+Math.floor(m/12)+' yr'+(m%12?' '+(m%12)+' mo':''):'About '+m+' months')(Math.round(604/amtPages(st.ppd)/30.4))} for the whole Quran</span></div><select id="set-ppd" data-set="ppd">${['1L','2L','3L','4L','5L','6L','half','1','2','3'].map(k=>`<option value="${k}" ${st.ppd===k?'selected':''}>${amtLabel(k)}</option>`).join('')}</select></div>
+   <div class="field"><div class="fl"><b>New day starts at</b><span>Anything you do before this counts for the day before</span></div><select id="set-dayStart" data-set="dayStart">${[0,1,2,3,4,5,6].map(h=>`<option value="${h}" ${dayStartH()===h?'selected':''}>${h===0?'Midnight':h+':00 am'}</option>`).join('')}</select></div>`)
+   +`<p class="small muted" style="margin:0">You can still change the amount for a single day on the New tab.</p>`;
+  if(sec==='steps')return head('New memorization steps','The checklist for each new page. Set a number to 1 for a tick box, or higher for a counter.')+card('',`
    <div class="slist">${st.steps.map((z,k)=>`<div class="srow ${z.on?'':'off'}"><button class="sw ${z.on?'on':''}" data-act="stepOn" data-id="${z.id}" aria-pressed="${z.on}" aria-label="${z.on?'Turn off':'Turn on'} step"></button><input type="text" id="step-${z.id}" data-step-label="${z.id}" value="${esc(z.label||STEP_NAMES[z.id]||'')}" aria-label="Step name"><div class="sbtns"><label class="cnt">×<input type="number" id="cnt-${z.id}" data-stepcount="${z.id}" min="1" max="500" value="${z.count}" inputmode="numeric" aria-label="How many times"></label><button class="mini" data-act="stepMove" data-id="${z.id}" data-dir="-1" ${k?'':'disabled'} aria-label="Move up">↑</button><button class="mini" data-act="stepMove" data-id="${z.id}" data-dir="1" ${k<st.steps.length-1?'':'disabled'} aria-label="Move down">↓</button>${z.custom?`<button class="mini" data-act="stepDel" data-id="${z.id}" aria-label="Remove step">✕</button>`:''}</div></div>`).join('')}</div>
-   <div class="row"><input type="text" id="new-step" placeholder="Add a step, e.g. Recite to my teacher" style="flex:1;min-width:0;padding:9px 11px;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit"><button class="btn" data-act="stepAdd">Add</button></div>
-
-  </section>`;
-  const lad=st.ladder||[10,5];
-  h+=`<section class="card"><div class="card-h"><h2>Recent memorization</h2></div><p class="small muted" style="margin:0 0 6px">Repetitions from memory on the days after a page is memorized. Then it moves to Connection.</p>
-   ${lad.map((c,i)=>`<div class="field"><div class="fl"><b>Day ${i+1}</b><span>${i===0?'The day after memorizing':'The day after that'}</span></div><label class="cnt"><input type="number" id="lad-${i}" data-lad="${i}" min="1" max="200" value="${c}" inputmode="numeric" style="width:84px;padding:8px">×</label></div>`).join('')}
-   <div class="row"><button class="btn" data-act="ladAdd" ${lad.length>=7?'disabled':''}>Add a day</button><button class="btn" data-act="ladDel" ${lad.length<=1?'disabled':''}>Remove last day</button></div>
-   <details class="setup" style="margin-top:12px"><summary>When memorizing in parts</summary>
-   ${num('partReps','Each part','Repetitions the day after memorizing a part',1,100)}
-   ${num('partKeep','Earlier parts, next day','While the next part gets its repetitions · 0 = off',0,100)}
-   ${num('joinReps','Full page, joined','The day after the last part’s repetitions · 0 = off',0,200)}</details>
-  </section>`;
-  h+=`<section class="card"><div class="card-h"><h2>Mushaf pages</h2></div><p class="small muted" style="margin:0 0 6px">How pages look when you tap a page name. Both are the 15-line Madani mushaf.</p>
-   <div class="field"><div class="fl"><b>Page style</b><span>${st.mvType==='tajweed'?'Newer Madinah print · a few line breaks differ from the plain pages':'Classic Madinah print'}</span></div><select id="set-mvType" data-set="mvType"><option value="plain" ${st.mvType!=='tajweed'?'selected':''}>Plain</option><option value="tajweed" ${st.mvType==='tajweed'?'selected':''}>Tajweed colors</option></select></div>
-   <div class="field"><div class="fl"><b>Page colors</b></div><select id="set-mvTheme" data-set="mvTheme"><option value="auto" ${(st.mvTheme||'auto')==='auto'?'selected':''}>Match the app</option><option value="light" ${st.mvTheme==='light'?'selected':''}>Light</option><option value="dark" ${st.mvTheme==='dark'?'selected':''}>Dark</option></select></div>
-  </section>`;
-  h+=`<section class="card"><div class="card-h"><h2>Connection and long revision</h2></div>
-   ${num('connTarget','Connection days','Once a day, before long revision',1,60)}
-   ${num('cycle','Long revision parts','Old pages are split into this many parts, one a day',1,60)}
-  </section>`;
-  h+=`<section class="card"><div class="card-h"><h2>Weak pages</h2><span class="small muted">Clean recitations to clear</span></div>
-   ${num('weakL1','Shaky','',1,200)}
-   ${num('weakL2','Weak','',1,200)}
-   ${num('weakL3','Very weak','',1,200)}
-  </section>`;
-  h+=`<section class="card"><div class="card-h"><h2>Backup</h2></div>
-   <p class="small muted" style="margin:0 0 8px">Save your progress to a file, or restore it here or on another device.</p>
+   <div class="row"><input type="text" id="new-step" placeholder="Add a step, e.g. Recite to my teacher" class="txt"><button class="btn" data-act="stepAdd">Add</button></div>`);
+  if(sec==='reps'){const pk=st.partKeep|0,pr=st.partReps|0,jr=st.joinReps|0;
+    const pattern=`<div class="pattern"><div><b>Half pages</b><span>First half: ${[reps||'—',pr].concat(pk?[pk]:[]).join(' → ')}</span><span>Second half: ${reps||'—'} → ${pr}</span>${jr?`<span>Joined page: ${jr}</span>`:''}<span>Then the full page: ${lad.join(' → ')}</span></div><div><b>Full pages</b><span>${reps||'—'} → ${lad.join(' → ')}</span></div><div class="small muted">Each arrow is the next day. After that, the page goes to Connection.</div></div>`;
+    return head('Repetitions','How many times you recite from memory on the days after memorizing.')+card('Your pattern',pattern)
+    +card('After a full page',`${lad.map((c,i)=>`<div class="field"><div class="fl"><b>${i===0?'Next day':'Day '+(i+1)}</b></div><label class="cnt"><input type="number" id="lad-${i}" data-lad="${i}" min="1" max="200" value="${c}" inputmode="numeric">×</label></div>`).join('')}
+     <div class="row"><button class="btn" data-act="ladAdd" ${lad.length>=7?'disabled':''}>Add a day</button><button class="btn" data-act="ladDel" ${lad.length<=1?'disabled':''}>Remove last day</button></div>`)
+    +card('When memorizing in parts',`${num('partReps','Each part, next day','',1,100,'×')}${num('partKeep','First part, the day after','While the next part gets its repetitions · 0 = off',0,100,'×')}${num('joinReps','Joined page','The day after the last part · 0 = off',0,200,'×')}`)}
+  if(sec==='conn')return head('Connection and revision','After its repetitions, each page is recited once a day for a while (connection), then joins your long revision cycle.')+card('',`${num('connTarget','Connection','Days of reciting once a day',1,60,'days')}${num('cycle','Long revision','Revision pages are split into this many parts, one a day',1,60,'parts')}`);
+  if(sec==='weak')return head('Weak pages','Mark a page Shaky, Weak or Very weak with the ··· button. It clears after this many clean recitations, stepping down one level at a time.')+card('',`${num('weakL1','Shaky','',1,200,'×')}${num('weakL2','Weak','',1,200,'×')}${num('weakL3','Very weak','',1,200,'×')}`);
+  if(sec==='mushaf')return head('Mushaf pages','How a page looks when you tap it. Both are the 15-line Madani mushaf.')+card('',`
+   <div class="field"><div class="fl"><b>Page style</b><span>${st.mvType==='tajweed'?'Newer Madinah print · a few line breaks differ from plain':'Classic Madinah print'}</span></div><select id="set-mvType" data-set="mvType"><option value="plain" ${st.mvType!=='tajweed'?'selected':''}>Plain</option><option value="tajweed" ${st.mvType==='tajweed'?'selected':''}>Tajweed colors</option></select></div>
+   <div class="field"><div class="fl"><b>Page colors</b></div><select id="set-mvTheme" data-set="mvTheme"><option value="auto" ${(st.mvTheme||'auto')==='auto'?'selected':''}>Match the app</option><option value="light" ${st.mvTheme==='light'?'selected':''}>Light</option><option value="dark" ${st.mvTheme==='dark'?'selected':''}>Dark</option></select></div>`);
+  if(sec==='rm'){const rl=rmLad(),on=rmOn(),{rg,done,name}=rmRangeInfo();
+    return head('Revision mode','A break from new memorization to strengthen pages you already know. New, recent and connection pages wait exactly where they are until you turn it off.')
+    +`<section class="card" style="display:flex;align-items:center;gap:12px"><div style="flex:1"><b>Revision mode</b><div class="small muted">${on?'On · day '+(daysBetween(RM().since||TODAY(),TODAY())+1):'Off'}</div></div><button class="sw ${on?'on':''}" data-act="rmToggle" aria-pressed="${on}" aria-label="Revision mode"></button></section>`
+    +card('1 · Pages to perfect',`<p class="small muted" style="margin:0 0 4px">${esc(name)} · ${done} of ${rg.pages.length} perfected</p>${rmRangeFields()}${rmPpdField('rm-ppd')}${rmNum('reps','Recite each page','From memory, on the day you perfect it',1,200,rmReps(),'×')}`)
+    +card('2 · Near revision',`<p class="small muted" style="margin:0 0 4px">On the following days</p>${rl.map((c,i)=>`<div class="field"><div class="fl"><b>${i===0?'Next day':'Day '+(i+1)}</b></div><label class="cnt"><input type="number" id="rmlad-${i}" data-rmlad="${i}" min="1" max="200" value="${c}" inputmode="numeric">×</label></div>`).join('')}<div class="row"><button class="btn" data-act="rmLadAdd" ${rl.length>=7?'disabled':''}>Add a day</button><button class="btn" data-act="rmLadDel" ${rl.length<=1?'disabled':''}>Remove last day</button></div>`)
+    +card('3 · Long revision',rmNum('cycle','Go through all memorized pages in','One part a day',1,60,rmCycle(),'days'))}
+  if(sec==='data')return head('Backup and data','Your progress is saved on this device. Save a backup now and then so you never lose it.')+card('Backup',`
    <div class="row" style="margin-top:0"><button class="btn pri" data-act="exportBk">Save a backup</button><button class="btn" data-act="importPick">Restore from backup</button><input type="file" id="importFile" accept=".json,application/json" hidden></div>
    ${ui.pendingImport?`<div class="confirm" style="margin-top:10px">Replace everything here with the backup from ${esc(ui.pendingImport.when)} (${ui.pendingImport.pages} pages memorized, ${ui.pendingImport.lessons} lessons)?<div class="row"><button class="btn warn" data-act="importYes">Replace with backup</button><button class="btn" data-act="importNo">Cancel</button></div></div>`:''}
-   ${ui.msg?`<p class="small" style="margin:10px 0 0">${esc(ui.msg)}</p>`:''}
-  </section>`;
-  h+=`<section class="card"><div class="card-h"><h2>Data</h2>${syncHtml()}</div>
-   ${ui.confirmReset?`<div class="confirm">Choose what to reset. Neither can be undone.<div class="row"><button class="btn" data-act="defaults">Settings only</button><button class="btn warn" data-act="resetYes">Erase everything</button><button class="btn" data-act="resetNo">Cancel</button></div><p class="small" style="margin:8px 0 0">Settings only restores the Tikrar counts and checklist and keeps your pages. Erase everything removes all progress.</p></div>`:`<div class="row" style="margin-top:0"><button class="btn warn" data-act="reset">Reset…</button></div>`}
-  </section>`;
-  return h;
+   ${ui.msg?`<p class="small" style="margin:10px 0 0">${esc(ui.msg)}</p>`:''}`)
+   +card('Reset',`${ui.confirmReset?`<div class="confirm">Choose what to reset. Neither can be undone.<div class="row"><button class="btn" data-act="defaults">Settings only</button><button class="btn warn" data-act="resetYes">Erase everything</button><button class="btn" data-act="resetNo">Cancel</button></div><p class="small" style="margin:8px 0 0">Settings only restores the default counts and checklist and keeps your pages. Erase everything removes all progress.</p></div>`:`<div class="row" style="margin-top:0"><button class="btn warn" data-act="reset">Reset…</button></div>`}`);
+  // menu
+  const item=(k,t,sub,act)=>`<button class="mrow" data-act="${act||'sset'}" data-v="${k}"><span><b>${t}</b><span>${sub}</span></span><span class="chev">›</span></button>`;
+  const grp=(t,rows)=>`<div class="mgrp">${t?`<div class="mgt">${t}</div>`:''}<div class="mlist">${rows}</div></div>`;
+  const prior=st.priorTo>0?'An-Nas → '+surahName(st.priorTo):'Nothing yet';
+  return `<h2 style="font-size:22px">Settings</h2>`
+   +grp('',item('progress','Progress',memorizedSet().size+' of '+TOTAL+' pages memorized','tab'))
+   +grp('Your plan',item('plan','Daily plan',amtLabel(st.ppd)+' a day · new day at '+(dayStartH()===0?'midnight':dayStartH()+' am'))+item('start','Starting point','Memorized before: '+esc(prior))+item('steps','New memorization steps',esc(stepSummary()))+item('reps','Repetitions','Then '+ladTxt(lad)+' · joined page '+(st.joinReps|0)+'×')+item('conn','Connection and revision',(st.connTarget|0)+' days of connection · revision in '+(st.cycle|0)+' parts')+item('weak','Weak pages','Clear after '+[st.weakL1,st.weakL2,st.weakL3].join(' / ')+' clean recitations'))
+   +grp('Revision mode',item('rm','Revision mode',rmOn()?'On · '+esc(rmRangeInfo().name):'Off · perfect pages you already know'))
+   +grp('Display',item('mushaf','Mushaf pages',(st.mvType==='tajweed'?'Tajweed colors':'Plain')+' · '+({light:'light',dark:'dark'}[st.mvTheme]||'matches the app')))
+   +grp('Your data',item('data','Backup and data','Save or restore your progress'));
 }
 function widgetDays(){
   const out=[],d=fromKey(TODAY()),st=S.settings,wk=Object.keys(S.wk).length;
@@ -914,7 +920,7 @@ function widgetDays(){
 }
 let lastWidget='';
 function pushWidget(){if(!window.AndroidBridge||!AndroidBridge.updateWidget)return;try{const j=JSON.stringify({v:1,dayStart:dayStartH(),days:widgetDays()});if(j!==lastWidget){lastWidget=j;AndroidBridge.updateWidget(j)}}catch(e){}}
-function goBack(){if(ui.mv){mvClose();return'stay'}if(ui.tab!=='today'){act('tab',{v:'today'});return'stay'}return'exit'}
+function goBack(){if(ui.mv){mvClose();return'stay'}if(ui.tab==='settings'&&ui.sset){act('sset',{v:''});return'stay'}if(ui.tab!=='today'){act('tab',{v:'today'});return'stay'}return'exit'}
 function render(){
   const v={today:vToday,memorize:rmOn()?vPerfect:vMemorize,recent:vRecent,connection:vConnection,revision:vRevision,progress:vProgress,settings:vSettings}[ui.tab]||vToday;
   document.getElementById('app').innerHTML=header()+`<main class="stack">${v()}</main>`;
@@ -932,7 +938,8 @@ function buzz(){try{navigator.vibrate&&navigator.vibrate(12)}catch(e){}}
 function act(a,d){
   const t=TODAY(),st=S.settings,p=d.p?+d.p:null;let changed=true;
   switch(a){
-    case 'tab':ui.tab=d.v;ui.menu=null;ui.aheadMem=ui.aheadConn=ui.ahead=false;ui.confirmReset=ui.confirmUndo=false;ui.msg='';ui.pendingImport=null;changed=false;render();window.scrollTo(0,0);return;
+    case 'sset':ui.sset=d.v||null;ui.confirmReset=false;ui.msg='';render();window.scrollTo(0,0);return;
+    case 'tab':ui.sset=null;ui.tab=d.v;ui.menu=null;ui.aheadMem=ui.aheadConn=ui.ahead=false;ui.confirmReset=ui.confirmUndo=false;ui.msg='';ui.pendingImport=null;changed=false;render();window.scrollTo(0,0);return;
     case 'noop':return;
     case 'openStep':ui.openStep[p]=+d.i;render();return;
     case 'dayPpd':{const wd=workTarget().date,lg=log(wd),v=normAmt(d.v),b=workTarget(),p0=b.pages[0],k0=p0?pkey(p0):null;if(v===st.ppd)delete lg.ppd;else lg.ppd=v;const a2=workTarget();if(p0&&a2.pages[0]===p0){const k1=pkey(p0);if(k1!==k0&&S.pp[k0]&&!S.pp[k1]){S.pp[k1]=S.pp[k0];delete S.pp[k0]}}ui.openStep={};break}
@@ -977,7 +984,7 @@ function act(a,d){
     case 'mvTest':if(ui.mv){ui.mv.test=!ui.mv.test;ui.mv.shown=0;mvRender()}return;
     case 'mvReveal':case 'mvTap':if(ui.mv&&ui.mv.test&&ui.mv.shown<(ui.mv.total||0)){ui.mv.shown++;mvRender()}return;
     case 'mvHide':if(ui.mv){ui.mv.shown=0;mvRender()}return;
-    case 'setupGo':S.setupSeen=1;ui.tab='settings';save();render();setTimeout(()=>{const d=document.querySelector('details.setup');if(d){d.open=true;d.scrollIntoView({behavior:'smooth',block:'center'})}},30);return;
+    case 'setupGo':S.setupSeen=1;ui.tab='settings';ui.sset='start';save();render();window.scrollTo(0,0);return;
     case 'setupSkip':S.setupSeen=1;break;
     case 'pauseTog':{if(S.pause&&S.pause.on)S.pause={on:false};else S.pause={on:true,since:t};ui.aheadMem=false;break}
     case 'rangeTog':ui.rangeOpen=!ui.rangeOpen;changed=false;return;

@@ -107,6 +107,18 @@ h1,h2,h3{font-family:var(--f-display);font-weight:600;margin:0;text-wrap:balance
 .mv-bar{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;padding:10px 12px calc(env(safe-area-inset-bottom) + 10px);border-top:1px solid var(--line);background:var(--surface)}
 .mv-bar .btn{min-width:0}
 .mv-msg{text-align:center;color:var(--muted);padding:40px 10px}
+
+.mgrp{display:flex;flex-direction:column;gap:6px}.mgt{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:0 4px}
+.mlist{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.mrow{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--line);padding:13px 16px;color:var(--ink);font:inherit;cursor:pointer}
+.mrow:first-child{border-top:0}.mrow:hover{background:var(--sunk)}
+.mrow>span:first-child{flex:1;min-width:0}.mrow b{display:block;font-weight:600}.mrow b+span{display:block;font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mrow .chev{color:var(--muted);font-size:20px}
+.pair{display:flex;align-items:center;gap:6px}.pair input{width:72px!important}
+.field .cnt input{width:72px;padding:8px;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;text-align:center}
+.field .cnt{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:14px}
+.txt{flex:1;min-width:0;padding:9px 11px;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit}
+.pattern{display:flex;flex-direction:column;gap:10px}.pattern>div{display:flex;flex-direction:column;gap:2px}.pattern span{font-size:14px}
 .task .bar{display:block;height:4px;border-radius:2px;background:var(--sunk);margin-top:7px;overflow:hidden}
 .task .bar b{display:block;height:100%;background:var(--green);border-radius:2px}
 .tick{width:26px;height:26px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-size:13px;font-weight:700}
