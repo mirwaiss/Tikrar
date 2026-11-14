@@ -47,7 +47,7 @@ csp='<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; s
 head=head.replace('<meta charset="utf-8">','<meta charset="utf-8">\n'+csp)
 open(D+'/index.html','w').write(head+body+tail)
 files=['./','index.html','app.js','manifest.webmanifest','icons/icon-192.png','icons/icon-512.png','icons/icon-maskable-512.png','icons/apple-touch-icon.png']+['fonts/'+f for f in sorted(os.listdir(D+'/fonts'))]
-sw='''const CACHE='tikrar-v35';
+sw='''const CACHE='tikrar-v36';
 const FILES=%s;
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE&&k!=='tikrar-mushaf').map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
